@@ -67,24 +67,30 @@ export default function App() {
 
   return (
     <AppCtx.Provider value={{ S, admin, pid, setPid, run, showRc: setRc, photos, loadPhotos, setTab }}>
-      <header>
-        <div className="w" style={{ padding: 0 }}>
-          <h1>🙏 {S.set.gaam || "ગામ"} – {S.set.mandal || "ફંડ હિસાબ"}</h1>
-          <div className="mu">{admin ? "👤 મંડળ (પ્રમુખ/ખજાનચી) વિભાગ" : "👥 ગામ લોકો માટે (ફક્ત જોવા માટે)"}</div>
-        </div>
-      </header>
-      <div className="w">
-        {DEMO && <div className="demo">⚠️ ડેમો મોડ: ડેટા ફક્ત આ બ્રાઉઝરમાં સચવાય છે. સાચો ડેટાબેઝ વાપરવા <code>VITE_API_URL</code> સેટ કરો.</div>}
-        <div className="tabs">
-          {tabs.map(([k, n]) => (
-            <button key={k} className={tab === k ? "on" : ""} onClick={() => { if (k === "lg" && admin) logout(); else setTab(k); }}>{n}</button>
-          ))}
-        </div>
-        {err && <div className="card">{err}</div>}
-        {!loaded ? <div className="card">લોડ થઈ રહ્યું છે…</div>
-          : tab === "lg" ? <Login onLogin={login} />
-          : <View />}
-        <footer>              Design & Development by Sachin L Buchiya </footer>
+      <div className="app-wrapper">
+        <header>
+          <div className="w" style={{ padding: 0 }}>
+            <h1>🙏 {S.set.gaam || "ગામ"} – {S.set.mandal || "ફંડ હિસાબ"}</h1>
+            <div className="mu">{admin ? "👤 મંડળ (પ્રમુખ/ખજાનચી) વિભાગ" : "👥 ગામ લોકો માટે (ફક્ત જોવા માટે)"}</div>
+          </div>
+        </header>
+        <main className="w content-wrap">
+          {DEMO && <div className="demo">⚠️ ડેમો મોડ: ડેટા ફક્ત આ બ્રાઉઝરમાં સચવાય છે. સાચો ડેટાબેઝ વાપરવા <code>VITE_API_URL</code> સેટ કરો.</div>}
+          <div className="tabs">
+            {tabs.map(([k, n]) => (
+              <button key={k} className={tab === k ? "on" : ""} onClick={() => { if (k === "lg" && admin) logout(); else setTab(k); }}>{n}</button>
+            ))}
+          </div>
+          {err && <div className="card">{err}</div>}
+          {!loaded ? <div className="card">લોડ થઈ રહ્યું છે…</div>
+            : tab === "lg" ? <Login onLogin={login} />
+            : <View />}
+        </main>
+        <footer>
+          <div className="w">
+            Design & Development by Sachin L Buchiya
+          </div>
+        </footer>
       </div>
       {rc && <Receipt o={rc} S={S} onClose={() => { setRc(null); history.replaceState({}, "", location.pathname); }} />}
     </AppCtx.Provider>
