@@ -84,7 +84,7 @@ export default function App() {
         {!loaded ? <div className="card">લોડ થઈ રહ્યું છે…</div>
           : tab === "lg" ? <Login onLogin={login} />
           : <View />}
-        <footer>🙏આભાર🙏 </footer>
+        <footer>              Design & Development by Sachin L Buchiya </footer>
       </div>
       {rc && <Receipt o={rc} S={S} onClose={() => { setRc(null); history.replaceState({}, "", location.pathname); }} />}
     </AppCtx.Provider>
