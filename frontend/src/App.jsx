@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, setToken, getToken, DEMO } from "./api.js";
 import { AppCtx } from "./ctx.js";
+import Home from "./components/Home.jsx";
+import Photos from "./components/Photos.jsx";
+import Contact from "./components/Contact.jsx";
 import Summary from "./components/Summary.jsx";
 import Collection from "./components/Collection.jsx";
 import Donations from "./components/Donations.jsx";
@@ -21,6 +24,9 @@ export default function App() {
   const [err, setErr] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [rc, setRc] = useState(null);
+  const [photos, setPhotos] = useState([]);
+  const loadPhotos = useCallback(async () => { try { setPhotos(await api("photos")); } catch { /* ignore */ } }, []);
+  useEffect(() => { loadPhotos(); }, [loadPhotos]);
 
   const load = useCallback(async () => {
     try {
@@ -39,17 +45,28 @@ export default function App() {
     return () => { clearInterval(t); window.removeEventListener("logout", lo); };
   }, [load]);
 
-  const run = async (fn) => { try { await fn(); await load(); return true; } catch (e) { alert(e.message); return false; } };
-  const login = (t) => { setToken(t); setAdmin(true); setTab("home"); };
-  const logout = () => { setToken(""); setAdmin(false); setTab("home"); };
+  // WhatsApp માં આવેલી રસીદની લિંક (?r=pay-ID) ખોલવા
+  useEffect(() => {
+    if (!loaded) return;
+    const r = new URLSearchParams(location.search).get("r");
+    if (!r) return;
+    const [k, ...rest] = r.split("-"), id = rest.join("-");
+    if (k === "pay") { const p = S.pay.find((x) => x.id === id), m = p && S.mem.find((x) => x.id === p.mid); if (p) setRc({ ...p, name: m ? m.name : "—", kind: "pay" }); }
+    if (k === "don") { const d = S.don.find((x) => x.id === id); if (d) setRc({ ...d, name: d.donor, kind: "don" }); }
+    // eslint-disable-next-line
+  }, [loaded]);
 
-  const tabs = [["home", "📊 સારાંશ"], ["ug", "✅ ઉઘરાણી"], ["dn", "🎁 દાન"], ["ex", "💸 ખર્ચ"],
-    ...(admin ? [["pg", "📅 કાર્યક્રમ"], ["gm", "🏠 ગામ યાદી"], ["st", "⚙️ સેટિંગ"]] : []),
-    ["lg", admin ? "🚪 લૉગઆઉટ" : "🔐 મંડળ લૉગિન"]];
-  const View = { home: Summary, ug: Collection, dn: Donations, ex: Expenses, pg: Programs, gm: Members, st: Settings }[tab];
+  const run = async (fn) => { try { await fn(); await load(); return true; } catch (e) { alert(e.message); return false; } };
+  const login = (t) => { setToken(t); setAdmin(true); setTab("home"); load(); };
+  const logout = () => { setToken(""); setAdmin(false); setTab("home"); load(); };
+
+  const tabs = [["home", "🏠 હોમ"], ["sum", "📊 સારાંશ"], ["ug", "✅ ઉઘરાણી"], ["dn", "🎁 દાન"], ["ex", "💸 ખર્ચ"],
+    ...(admin ? [["ph", "🖼 ફોટા"], ["pg", "📅 કાર્યક્રમ"], ["gm", "🏠 ગામ યાદી"], ["st", "⚙️ સેટિંગ"]] : []),
+    ["contact", "📞 સંપર્ક"], ["lg", admin ? "🚪 લૉગઆઉટ" : "🔐 મંડળ લૉગિન"]];
+  const View = { home: Home, sum: Summary, contact: Contact, ph: Photos, ug: Collection, dn: Donations, ex: Expenses, pg: Programs, gm: Members, st: Settings }[tab];
 
   return (
-    <AppCtx.Provider value={{ S, admin, pid, setPid, run, showRc: setRc }}>
+    <AppCtx.Provider value={{ S, admin, pid, setPid, run, showRc: setRc, photos, loadPhotos, setTab }}>
       <header>
         <div className="w" style={{ padding: 0 }}>
           <h1>🙏 {S.set.gaam || "ગામ"} – {S.set.mandal || "ફંડ હિસાબ"}</h1>
@@ -67,9 +84,9 @@ export default function App() {
         {!loaded ? <div className="card">લોડ થઈ રહ્યું છે…</div>
           : tab === "lg" ? <Login onLogin={login} />
           : <View />}
-        <footer>🙏 ગામ હિસાબ</footer>
+        <footer>🙏આભાર🙏 </footer>
       </div>
-      {rc && <Receipt o={rc} S={S} onClose={() => setRc(null)} />}
+      {rc && <Receipt o={rc} S={S} onClose={() => { setRc(null); history.replaceState({}, "", location.pathname); }} />}
     </AppCtx.Provider>
   );
 }

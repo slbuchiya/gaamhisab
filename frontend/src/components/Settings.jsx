@@ -1,17 +1,20 @@
 import { useState } from "react";
 import { useApp } from "../ctx.js";
 import { api } from "../api.js";
+const F = [
+  ["mandal", "મંડળનું નામ"], ["gaam", "ગામનું નામ"],
+  ["pramukh", "પ્રમુખનું નામ"], ["pramukhPhone", "પ્રમુખનો મોબાઇલ"],
+  ["khajanchi", "ખજાનચીનું નામ"], ["khajanchiPhone", "ખજાનચીનો મોબાઇલ"],
+  ["mantri", "મંત્રીનું નામ"], ["mantriPhone", "મંત્રીનો મોબાઇલ"],
+  ["phone", "મંડળનો મુખ્ય WhatsApp નંબર (સંપર્ક પેજ માટે)"], ["email", "ઈમેલ"], ["address", "સરનામું"],
+];
 function Form({ init }) {
   const { run } = useApp();
-  const [f, setF] = useState({ gaam: init.gaam || "", mandal: init.mandal || "", pramukh: init.pramukh || "", khajanchi: init.khajanchi || "" });
-  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const [f, setF] = useState(Object.fromEntries(F.map(([k]) => [k, init[k] || ""])));
   const save = async () => { if (await run(() => api("settings", "PUT", f))) alert("સચવાઈ ગયું ✅"); };
   return (
-    <div className="card"><b>સેટિંગ (રસીદ માટે)</b>
-      <div className="row"><input placeholder="ગામનું નામ" value={f.gaam} onChange={set("gaam")} /></div>
-      <div className="row"><input placeholder="મંડળનું નામ" value={f.mandal} onChange={set("mandal")} /></div>
-      <div className="row"><input placeholder="પ્રમુખનું નામ" value={f.pramukh} onChange={set("pramukh")} /></div>
-      <div className="row"><input placeholder="ખજાનચીનું નામ" value={f.khajanchi} onChange={set("khajanchi")} /></div>
+    <div className="card"><b>સેટિંગ (રસીદ અને સંપર્ક પેજ માટે)</b>
+      {F.map(([k, label]) => <div className="row" key={k}><input style={{ width: "100%" }} placeholder={label} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></div>)}
       <button className="b p" onClick={save}>સાચવો</button>
     </div>
   );

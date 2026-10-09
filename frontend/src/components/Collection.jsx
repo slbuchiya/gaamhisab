@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useApp } from "../ctx.js";
 import { api } from "../api.js";
-import { R, N, today } from "../utils.js";
+import { R, N, today, sendWa } from "../utils.js";
 import PSel from "./PSel.jsx";
 export default function Collection() {
   const { S, admin, pid, run, showRc } = useApp();
@@ -16,7 +16,9 @@ export default function Collection() {
     if (old) { if (confirm("આ ઉઘરાણી રદ કરવી છે?")) await run(() => api("payments/" + old.id, "DELETE")); return; }
     const a = prompt("કેટલી રકમ લીધી? (₹)", (prog && prog.amount) || "");
     if (a === null || !N(a)) return;
-    await run(() => api("payments", "POST", { pid, mid: m.id, amount: N(a), date: today() }));
+    let created = null;
+    const ok = await run(async () => { const r = await api("payments", "POST", { pid, mid: m.id, amount: N(a), date: today() }); created = r && r[0]; });
+    if (ok && created && m.phone && confirm(`${m.name} ને WhatsApp પર રસીદ મોકલવી છે?`)) sendWa(S, { ...created, name: m.name, phone: m.phone, kind: "pay" });
   };
   return (<>
     <PSel />
@@ -28,7 +30,10 @@ export default function Collection() {
             {admin ? <input type="checkbox" checked={!!p} onChange={() => tick(m)} /> : (p ? "✅" : "⬜")} {m.name}
             {p && <span className="mu"> {R(p.amount)}</span>}
           </span>
-          {p && <button className="b" onClick={() => showRc({ ...p, name: m.name })}>🧾 રસીદ</button>}
+          {p && <span>
+            <button className="b" onClick={() => showRc({ ...p, name: m.name, phone: m.phone, kind: "pay" })}>🧾 રસીદ</button>
+            {admin && m.phone && <> <button className="b" onClick={() => sendWa(S, { ...p, name: m.name, phone: m.phone, kind: "pay" })}>📲</button></>}
+          </span>}
         </div>); })}
       {!list.length && <div className="mu">કોઈ નામ નથી</div>}
     </div>

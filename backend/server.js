@@ -13,7 +13,7 @@ ADMIN_USERS.split(",").map(s => s.trim()).filter(Boolean).forEach(s => {
 
 const app = express();
 app.set("trust proxy", 1);
-app.use(express.json({ limit: "200kb" }));
+app.use(express.json({ limit: "1mb" }));
 
 // CORS: FRONTEND_URL = Vercel website nu link (comma thi ek karta vadhu pan chale). khali hoy to badhane chhut.
 const allowed = FRONTEND_URL.split(",").map(s => s.trim().replace(/\/$/, "")).filter(Boolean);
@@ -33,12 +33,15 @@ const mk = (name, def, uniq) => { const s = new mongoose.Schema(def, opt); if (u
 
 const M = {
   programs: mk("Program", { name: str(100), amount: { type: Number, default: 0, min: 0 } }),
-  members: mk("Member", { name: str(100) }),
+  members: mk("Member", { name: str(100), phone: { type: String, trim: true, maxlength: 20 } }),
   payments: mk("Payment", { pid: str(40), mid: str(40), amount: { type: Number, required: true, min: 0 }, date: { type: String, default: today }, no: Number }, { pid: 1, mid: 1 }),
   expenses: mk("Expense", { pid: str(40), detail: str(200), amount: { type: Number, required: true, min: 0 }, date: { type: String, default: today } }),
-  donations: mk("Donation", { pid: str(40), donor: str(100), kind: { type: String, enum: ["cash", "item"], required: true }, amount: { type: Number, min: 0 }, item: { type: String, trim: true, maxlength: 200 }, date: { type: String, default: today }, no: Number })
+  donations: mk("Donation", { pid: str(40), donor: str(100), kind: { type: String, enum: ["cash", "item"], required: true }, amount: { type: Number, min: 0 }, item: { type: String, trim: true, maxlength: 200 }, phone: { type: String, trim: true, maxlength: 20 }, date: { type: String, default: today }, no: Number })
+  ,
+  photos: mk("Photo", { caption: { type: String, trim: true, maxlength: 200, default: "" }, pid: { type: String, default: "" }, data: { type: String, required: true, maxlength: 600000 }, date: { type: String, default: today } })
 };
-const Setting = mongoose.model("Setting", new mongoose.Schema({ _id: Number, gaam: String, mandal: String, pramukh: String, khajanchi: String }, opt));
+const SET_FIELDS = ["gaam", "mandal", "pramukh", "khajanchi", "mantri", "address", "phone", "email", "pramukhPhone", "khajanchiPhone", "mantriPhone"];
+const Setting = mongoose.model("Setting", new mongoose.Schema({ _id: Number, ...Object.fromEntries(SET_FIELDS.map(k => [k, String])) }, opt));
 const Counter = mongoose.model("Counter", new mongoose.Schema({ _id: String, n: Number }));
 const nextNo = async () => (await Counter.findByIdAndUpdate("receipt", { $inc: { n: 1 } }, { upsert: true, new: true })).n;
 
@@ -68,16 +71,36 @@ app.post("/api/login", wrap(async (req, res) => {
   res.json({ token: jwt.sign({ u: user }, JWT_SECRET, { expiresIn: "30d" }) });
 }));
 
+const isAdmin = (req) => { try { jwt.verify((req.headers.authorization || "").replace("Bearer ", ""), JWT_SECRET); return true; } catch { return false; } };
+
+// મોબાઇલ નંબર ફક્ત લૉગિન કરેલ મંડળને જ દેખાય; ગામ લોકોને નહીં
 app.get("/api/all", wrap(async (req, res) => {
   const [prog, mem, pay, exp, don, set] = await Promise.all([
     M.programs.find(), M.members.find(), M.payments.find(), M.expenses.find(), M.donations.find(), Setting.findById(1)
   ]);
-  res.json({ prog, mem, pay, exp, don, set: set || {} });
+  const adm = isAdmin(req);
+  const strip = (arr) => arr.map(d => { const o = d.toJSON(); if (!adm) delete o.phone; return o; });
+  res.set("Cache-Control", "no-store");
+  res.json({ prog, mem: strip(mem), pay, exp, don: strip(don), set: set || {} });
+}));
+
+app.get("/api/photos", wrap(async (req, res) => {
+  res.json(await M.photos.find().sort({ _id: -1 }).limit(60));
 }));
 
 app.put("/api/settings", auth, wrap(async (req, res) => {
-  const { gaam, mandal, pramukh, khajanchi } = req.body || {};
-  await Setting.findByIdAndUpdate(1, { gaam, mandal, pramukh, khajanchi }, { upsert: true });
+  const b = req.body || {}, u = {};
+  SET_FIELDS.forEach(k => { if (typeof b[k] === "string") u[k] = b[k].slice(0, 300); });
+  await Setting.findByIdAndUpdate(1, u, { upsert: true });
+  res.json({ ok: true });
+}));
+
+const EDIT = { members: ["name", "phone"], donations: ["phone"], photos: ["caption"], programs: ["name", "amount"] };
+app.put("/api/:c/:id", auth, wrap(async (req, res) => {
+  const { c, id } = req.params, Model = M[c], f = EDIT[c];
+  if (!Model || !f) return res.sendStatus(404);
+  const u = {}; f.forEach(k => { if (req.body && req.body[k] !== undefined) u[k] = req.body[k]; });
+  await Model.findByIdAndUpdate(id, u, { runValidators: true });
   res.json({ ok: true });
 }));
 

@@ -2,7 +2,7 @@ import * as CFG from "../config.js";
 const RECEIPT_IMAGE = CFG.RECEIPT_IMAGE || "";
 const RECEIPT_FIELDS = CFG.RECEIPT_FIELDS || {};
 const STAMP_IMAGE = CFG.STAMP_IMAGE || "";
-import { R, pname } from "../utils.js";
+import { R, pname, sendWa } from "../utils.js";
 export default function Receipt({ o, S, onClose }) {
   const s = S.set;
   const amount = o.item ? o.item : R(o.amount);
@@ -26,6 +26,7 @@ export default function Receipt({ o, S, onClose }) {
         )}
         <div className="row np" style={{ justifyContent: "center" }}>
           <button className="b p" onClick={() => window.print()}>🖨️ પ્રિન્ટ / PDF</button>
+          {o.phone && <button className="b" onClick={() => sendWa(S, o)}>📲 WhatsApp</button>}
           <button className="b" onClick={onClose}>બંધ</button>
         </div>
       </div>
