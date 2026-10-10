@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useApp } from "../ctx.js";
 import MemberCard from "./MemberCard.jsx";
+import "./home.css";
 import { R, totals, pname, waLink, waPhone, ROLES } from "../utils.js";
 
 function useCount(to) {
@@ -44,20 +45,34 @@ export default function Home() {
   const lbGo = (d) => setLb((x) => (x + d + gal.length) % gal.length);
 
   return (<>
-    <section className="hp-hero">
-      {n ? slides.map((p, k) => <img key={p.id} src={p.data} alt="" className={"hp-slide" + (k === i ? " on" : "")} />) : <div className="hp-bg" />}
-      <div className="hp-shade" />
-      <div className="hp-txt">
+    <section className="hp-hero2">
+      <div className="hp-title">
         <div className="hp-kicker">🙏 સ્વાગત છે</div>
         <h2>{s.mandal || "ગામ ફંડ હિસાબ"}</h2>
         {s.gaam && <p>📍 {s.gaam}</p>}
-        <div className="hp-cta">
-          <button className="b p" onClick={() => setTab("ug")}>✅ ઉઘરાણી જુઓ</button>
-          <button className="b hp-ghost" onClick={() => setTab("contact")}>📞 સંપર્ક</button>
-        </div>
       </div>
-      {cap && <div className="hp-cap">📸 {cap}</div>}
-      {n > 1 && <div className="hp-dots">{slides.map((p, k) => <i key={p.id} className={k === i ? "on" : ""} onClick={() => setI(k)} />)}</div>}
+      {n ? (
+        <div className="hp-frame">
+          {slides.map((p, k) => (
+            <div key={p.id} className={"hp-s" + (k === i ? " on" : "")}>
+              <img className="bgi" src={p.data} alt="" aria-hidden="true" />
+              <img className="fg" src={p.data} alt={p.caption || ""} />
+            </div>
+          ))}
+          {n > 1 && <>
+            <button className="hp-nav l" onClick={() => setI((x) => (x - 1 + n) % n)} aria-label="પાછળ">‹</button>
+            <button className="hp-nav r" onClick={() => setI((x) => (x + 1) % n)} aria-label="આગળ">›</button>
+          </>}
+        </div>
+      ) : (
+        <div className="hp-frame0"><div style={{ fontSize: 44 }}>🙏</div><span>કાર્યક્રમના ફોટા અહીં સ્લાઇડ થશે</span></div>
+      )}
+      {(cap || n > 1) && (
+        <div className="hp-bar">
+          {cap && <div className="hp-capt">📸 {cap}</div>}
+          {n > 1 && <div className="hp-dots2">{slides.map((p, k) => <i key={p.id} className={k === i ? "on" : ""} onClick={() => setI(k)} />)}</div>}
+        </div>
+      )}
     </section>
 
     <div className="hp-stats">

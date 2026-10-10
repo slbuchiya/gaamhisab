@@ -1,0 +1,19 @@
+/* ===== હોમ: ઉપરનો ભાગ (નામ ઉપર, ફોટો આખો નીચે) ===== */
+.hp-hero2{border-radius:20px;overflow:hidden;margin:12px 0 14px;background:var(--card);border:1px solid var(--bd);box-shadow:0 8px 24px #0003}
+.hp-title{text-align:center;color:#fff;padding:20px 16px 18px;background:linear-gradient(135deg,var(--hd1),var(--hd2))}
+.hp-title .hp-kicker{display:inline-block;background:#ffffff26;padding:3px 14px;border-radius:20px;font-size:13px;margin-bottom:8px}
+.hp-title h2{margin:0;color:#fff;font-weight:700;font-size:clamp(22px,6.2vw,34px);line-height:1.35;overflow-wrap:anywhere}
+.hp-title p{margin:6px 0 0;font-size:15px;opacity:.95}
+.hp-frame{position:relative;height:clamp(300px,78vw,500px);background:#111;overflow:hidden}
+.hp-s{position:absolute;inset:0;opacity:0;transition:opacity .9s ease;pointer-events:none}
+.hp-s.on{opacity:1;pointer-events:auto}
+.hp-s .bgi{position:absolute;top:-24px;left:-24px;width:calc(100% + 48px);height:calc(100% + 48px);max-width:none;object-fit:cover;filter:blur(22px) brightness(.55)}
+.hp-s .fg{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:contain}
+.hp-frame0{height:clamp(200px,50vw,320px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;color:var(--mu);background:var(--bg);padding:12px}
+.hp-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;border:0;background:#0007;color:#fff;font-size:26px;width:40px;height:40px;border-radius:50%;cursor:pointer;line-height:1}
+.hp-nav.l{left:8px}.hp-nav.r{right:8px}
+.hp-bar{display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 12px 14px;background:var(--card)}
+.hp-capt{font-weight:600;text-align:center;overflow-wrap:anywhere}
+.hp-dots2{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.hp-dots2 i{width:8px;height:8px;border-radius:50%;background:var(--bd);cursor:pointer;transition:all .2s}
+.hp-dots2 i.on{background:var(--ac);width:22px;border-radius:5px}
