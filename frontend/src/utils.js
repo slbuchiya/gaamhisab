@@ -1,3 +1,4 @@
+import { API } from "./api.js";
 export const N = (v) => Number(v) || 0;
 export const R = (v) => "₹" + N(v).toLocaleString("en-IN");
 export const today = () => new Date().toISOString().slice(0, 10);
@@ -15,6 +16,9 @@ export function totals(S, pid) {
 // WhatsApp: ભારતીય નંબર -> 91XXXXXXXXXX
 export const waPhone = (p) => { let d = String(p || "").replace(/\D/g, ""); if (d.length === 11 && d[0] === "0") d = d.slice(1); if (d.length === 10) d = "91" + d; return d.length >= 11 ? d : ""; };
 export const waLink = (p, text) => `https://wa.me/${waPhone(p)}${text ? "?text=" + encodeURIComponent(text) : ""}`;
+export const ROLES = ["પ્રમુખ", "ઉપ પ્રમુખ", "ખજાનચી", "સહ ખજાનચી", "મહામંત્રી", "મંત્રી", "સલાહકાર", "કારોબારી સભ્ય"];
+// રસીદનું PDF (બેકએન્ડ ચાલુ હોય ત્યારે)
+export const pdfUrl = (o) => (API && o.id && o.kind ? `${API}/api/receipt/${o.kind}/${o.id}.pdf` : "");
 export function receiptText(S, o) {
   const s = S.set;
   return [
@@ -23,7 +27,7 @@ export function receiptText(S, o) {
     `તારીખ: ${o.date}`,
     `કાર્યક્રમ: ${pname(S, o.pid)}`,
     `શ્રી ${o.name} પાસેથી ${o.item ? "વસ્તુ: " + o.item : R(o.amount)} સ્વીકાર્યા. આભાર 🙏`,
-    `રસીદ જુઓ / પ્રિન્ટ: ${location.origin}/?r=${o.kind}-${o.id}`,
+    `📄 રસીદ (PDF): ${pdfUrl(o) || `${location.origin}/?r=${o.kind}-${o.id}`}`,
   ].join("\n");
 }
 export function sendWa(S, o) {
@@ -43,6 +47,23 @@ export function fileToDataUrl(file) {
         const d = c.toDataURL("image/jpeg", q);
         if (d.length < 580000) return res(d);
       }
+      rej(new Error("ફોટો બહુ મોટો છે"));
+    };
+    img.onerror = () => rej(new Error("ફોટો વાંચી શકાયો નહીં"));
+    img.src = url;
+  });
+}
+
+// સમિતિના સભ્યનો ફોટો: વચ્ચેથી ચોરસ કાપીને નાનો (360px) JPEG
+export function fileToAvatar(file) {
+  return new Promise((res, rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const side = Math.min(img.width, img.height), c = document.createElement("canvas");
+      c.width = c.height = 360;
+      c.getContext("2d").drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, 360, 360);
+      for (const q of [0.8, 0.65, 0.5]) { const d = c.toDataURL("image/jpeg", q); if (d.length < 230000) return res(d); }
       rej(new Error("ફોટો બહુ મોટો છે"));
     };
     img.onerror = () => rej(new Error("ફોટો વાંચી શકાયો નહીં"));

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useApp } from "../ctx.js";
-import { R, totals, pname, waLink, waPhone } from "../utils.js";
+import MemberCard from "./MemberCard.jsx";
+import { R, totals, pname, waLink, waPhone, ROLES } from "../utils.js";
 
 function useCount(to) {
   const [v, setV] = useState(0);
@@ -18,7 +19,7 @@ function Stat({ icon, label, value, money }) {
 }
 
 export default function Home() {
-  const { S, photos, setTab, setPid } = useApp();
+  const { S, photos, setTab, setPid, team } = useApp();
   const [i, setI] = useState(0), [lb, setLb] = useState(-1);
   const slides = photos.slice(0, 8), n = slides.length, s = S.set;
   useEffect(() => {
@@ -36,6 +37,7 @@ export default function Home() {
     return { ...p, got: pay.reduce((a, x) => a + (Number(x.amount) || 0), 0), cnt: pay.length, pct: S.mem.length ? Math.min(100, Math.round((pay.length * 100) / S.mem.length)) : 0 };
   });
   const people = [["પ્રમુખ", s.pramukh, s.pramukhPhone], ["ખજાનચી", s.khajanchi, s.khajanchiPhone], ["મંત્રી", s.mantri, s.mantriPhone]].filter((x) => x[1]);
+  const top = [...team].sort((a, b) => ROLES.indexOf(a.role) - ROLES.indexOf(b.role)).slice(0, 8);
   const donors = [...S.don].reverse().slice(0, 6);
   const gal = photos.slice(0, 12);
   const openProg = (id) => { setPid(id); setTab("ug"); };
@@ -50,6 +52,7 @@ export default function Home() {
         <h2>{s.mandal || "ગામ ફંડ હિસાબ"}</h2>
         {s.gaam && <p>📍 {s.gaam}</p>}
         <div className="hp-cta">
+          <button className="b p" onClick={() => setTab("ug")}>✅ ઉઘરાણી જુઓ</button>
           <button className="b hp-ghost" onClick={() => setTab("contact")}>📞 સંપર્ક</button>
         </div>
       </div>
@@ -95,16 +98,14 @@ export default function Home() {
       </div>
     </>}
 
-    {people.length > 0 && <>
+    {(top.length > 0 || people.length > 0) && <>
       <div className="hp-h">👥 મંડળના હોદ્દેદારો</div>
-      <div className="hp-team">
-        {people.map(([role, name, ph]) => (
-          <div className="card hp-person" key={role}>
-            <div className="hp-av">{[...name][0]}</div>
-            <b>{name}</b><span className="mu">{role}</span>
-            {waPhone(ph) && <div className="row" style={{ justifyContent: "center" }}><a className="b" href={`tel:+${waPhone(ph)}`}>📞</a><a className="b" href={waLink(ph)} target="_blank" rel="noreferrer">💬</a></div>}
-          </div>))}
+      <div className="tm-grid">
+        {top.length > 0
+          ? top.map((m) => <MemberCard key={m.id} m={m} size="sm" />)
+          : people.map(([role, name, ph]) => <MemberCard key={role} m={{ name, role, phone: ph, photo: "" }} size="sm" />)}
       </div>
+      <div style={{ textAlign: "center", marginTop: 10 }}><button className="b" onClick={() => setTab("team")}>👥 આખી સમિતિ જુઓ</button></div>
     </>}
 
     <div className="card hp-end">

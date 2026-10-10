@@ -1,6 +1,6 @@
 import { demoApi } from "./demo.js";
 
-const API = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+export const API = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 export const DEMO = !API;
 let token = localStorage.getItem("tk") || "";
 export const getToken = () => token;

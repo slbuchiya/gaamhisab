@@ -113,3 +113,43 @@ a.b{text-decoration:none;display:inline-block}
 .lb>img{max-width:100%;max-height:85vh;border-radius:10px}
 .lbc{position:absolute;bottom:18px;left:0;right:0;text-align:center;color:#fff}
 .lbx{position:absolute;top:14px;right:14px;border:0;background:#fff3;color:#fff;font-size:20px;width:38px;height:38px;border-radius:50%;cursor:pointer}
+/* ===== સમિતિ ===== */
+.tm-av{width:76px;height:76px;border-radius:50%;object-fit:cover;display:block;margin:0 auto 6px;border:3px solid var(--ac)}
+.tm-ini{display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--hd1),var(--hd2))}
+.tm-adm{margin-top:8px;border-top:1px dashed var(--bd);padding-top:8px}
+.tm-adm select{max-width:100%;margin-bottom:4px}
+
+/* ===== WhatsApp મોકલવાની શીટ ===== */
+.sheetbg{position:fixed;inset:0;background:#000a;z-index:30;display:flex;align-items:flex-end;justify-content:center}
+@media(min-width:600px){.sheetbg{align-items:center}}
+.sheet{background:var(--card);width:100%;max-width:420px;border-radius:20px 20px 0 0;padding:22px 18px calc(22px + env(safe-area-inset-bottom,0px));text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center}
+@media(min-width:600px){.sheet{border-radius:20px}}
+.b.wa{background:#16a34a;color:#fff;border-color:#16a34a;font-weight:700;padding:13px 18px;width:100%;white-space:normal}
+
+/* ===== v3: મોબાઇલ અને લેપટોપ બંનેમાં સરખી, સુધારેલી ડિઝાઇન ===== */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{max-width:100%;overflow-x:hidden}
+body{font-size:16px}
+img{max-width:100%}
+.w{max-width:1040px;padding:14px 16px}
+header{padding:16px 0 14px}
+header .w{padding:0 16px !important}
+.row>*{min-width:0}
+.row input:not([type=checkbox]):not([type=file]),.row select,.row textarea{flex:1 1 160px}
+.li{flex-wrap:wrap;gap:6px 10px}
+.card{overflow-wrap:anywhere}
+.hp-hero{aspect-ratio:auto;min-height:0;max-height:none;height:clamp(230px,46vw,440px)}
+.hp-slide{width:100%;height:100%}
+.hp-stats{grid-template-columns:repeat(2,1fr)}
+.hp-team>*,.hp-progs>*,.pgrid>*{min-width:0}
+.pgrid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+.lb{display:grid;place-items:center;padding:12px}
+.lb>img{width:auto;height:auto;max-width:100%;max-height:86vh;object-fit:contain;min-width:0}
+@media(min-width:700px){.hp-stats{grid-template-columns:repeat(4,1fr)}.hp-progs{grid-template-columns:repeat(2,1fr)}.hp-gal{grid-template-columns:repeat(5,1fr)}}
+@media(min-width:900px){.tabs{flex-wrap:wrap;overflow:visible}}
+@media(max-width:600px){
+  .b,.tabs button{padding:10px 14px}
+  h1,header h1{font-size:19px}
+  .hp-txt h2{font-size:22px}
+  .hp-gal{grid-template-columns:repeat(3,1fr)}
+}

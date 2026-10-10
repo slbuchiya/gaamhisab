@@ -4,6 +4,7 @@ import { AppCtx } from "./ctx.js";
 import Home from "./components/Home.jsx";
 import Photos from "./components/Photos.jsx";
 import Contact from "./components/Contact.jsx";
+import Team from "./components/Team.jsx";
 import Summary from "./components/Summary.jsx";
 import Collection from "./components/Collection.jsx";
 import Donations from "./components/Donations.jsx";
@@ -27,6 +28,9 @@ export default function App() {
   const [photos, setPhotos] = useState([]);
   const loadPhotos = useCallback(async () => { try { setPhotos(await api("photos")); } catch { /* ignore */ } }, []);
   useEffect(() => { loadPhotos(); }, [loadPhotos]);
+  const [team, setTeam] = useState([]);
+  const loadTeam = useCallback(async () => { try { setTeam(await api("team")); } catch { /* ignore */ } }, []);
+  useEffect(() => { loadTeam(); }, [loadTeam]);
 
   const load = useCallback(async () => {
     try {
@@ -62,11 +66,11 @@ export default function App() {
 
   const tabs = [["home", "🏠 હોમ"], ["sum", "📊 સારાંશ"], ["ug", "✅ ઉઘરાણી"], ["dn", "🎁 દાન"], ["ex", "💸 ખર્ચ"],
     ...(admin ? [["ph", "🖼 ફોટા"], ["pg", "📅 કાર્યક્રમ"], ["gm", "🏠 ગામ યાદી"], ["st", "⚙️ સેટિંગ"]] : []),
-    ["contact", "📞 સંપર્ક"], ["lg", admin ? "🚪 લૉગઆઉટ" : "🔐 મંડળ લૉગિન"]];
-  const View = { home: Home, sum: Summary, contact: Contact, ph: Photos, ug: Collection, dn: Donations, ex: Expenses, pg: Programs, gm: Members, st: Settings }[tab];
+    ["team", "👥 સમિતિ"], ["contact", "📞 સંપર્ક"], ["lg", admin ? "🚪 લૉગઆઉટ" : "🔐 મંડળ લૉગિન"]];
+  const View = { home: Home, sum: Summary, contact: Contact, team: Team, ph: Photos, ug: Collection, dn: Donations, ex: Expenses, pg: Programs, gm: Members, st: Settings }[tab];
 
   return (
-    <AppCtx.Provider value={{ S, admin, pid, setPid, run, showRc: setRc, photos, loadPhotos, setTab }}>
+    <AppCtx.Provider value={{ S, admin, pid, setPid, run, showRc: setRc, photos, loadPhotos, setTab, team, loadTeam }}>
       <div className="app-wrapper">
         <header>
           <div className="w" style={{ padding: 0 }}>

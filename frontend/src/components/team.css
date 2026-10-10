@@ -1,0 +1,36 @@
+/* ===== સમિતિ: પ્રોફેશનલ કાર્ડ ડિઝાઇન ===== */
+.tm-head{text-align:center;margin:10px 0 0}
+.tm-head h2{font-size:26px;margin:0}
+.tm-head p{margin:4px 0 0;color:var(--mu)}
+.tm-tier{margin:30px 0 4px;text-align:center;position:relative;height:26px}
+.tm-tier::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px solid var(--bd)}
+.tm-tier span{position:relative;z-index:1;display:inline-block;background:var(--bg);padding:0 16px;font-weight:700;color:var(--ac);line-height:26px}
+.tm-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:16px;margin:16px 0 4px}
+.tm-card{background:var(--card);border:1px solid var(--bd);border-radius:18px;overflow:hidden;text-align:center;box-shadow:0 2px 10px #0002;width:232px;transition:transform .2s,box-shadow .2s}
+.tm-card:hover{transform:translateY(-3px);box-shadow:0 10px 24px #0003}
+.tm-card.lg{width:284px}.tm-card.sm{width:204px}
+.tm-top{height:64px;background:linear-gradient(135deg,var(--hd1),var(--hd2))}
+.tm-card.lg .tm-top{height:86px}.tm-card.sm .tm-top{height:52px}
+.tm-pic{display:block;position:relative;width:96px;height:96px;border-radius:50%;object-fit:cover;margin:-48px auto 0;border:4px solid var(--card);background:var(--card);box-shadow:0 2px 8px #0003}
+.tm-card.lg .tm-pic{width:124px;height:124px;margin-top:-62px}
+.tm-card.sm .tm-pic{width:80px;height:80px;margin-top:-40px}
+.tm-ini{display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:700;color:#fff;background:linear-gradient(135deg,var(--hd1),var(--hd2))}
+.tm-body{padding:10px 12px 16px}
+.tm-name{display:block;font-size:17px;line-height:1.4}
+.tm-card.lg .tm-name{font-size:19px}
+.tm-role{display:inline-block;margin-top:6px;padding:2px 14px;border-radius:20px;font-size:12.5px;font-weight:600;color:var(--ac);background:#c2410c1a;border:1px solid #c2410c33}
+.tm-act{display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.tm-btn{display:inline-flex;align-items:center;gap:4px;padding:7px 13px;border-radius:20px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);text-decoration:none;font-size:13px}
+.tm-btn.wa{background:#16a34a;border-color:#16a34a;color:#fff}
+.tm-adm{margin-top:12px;border-top:1px dashed var(--bd);padding-top:10px}
+.tm-adm select{max-width:100%;margin-bottom:6px}
+.tm-empty{text-align:center;padding:36px 12px;color:var(--mu)}
+@media(max-width:600px){
+  .tm-card,.tm-card.sm{width:calc(50% - 8px)}
+  .tm-card.lg{width:min(100%,300px)}
+  .tm-pic{width:80px;height:80px;margin-top:-40px}
+  .tm-card.lg .tm-pic{width:108px;height:108px;margin-top:-54px}
+  .tm-card.sm .tm-pic{width:68px;height:68px;margin-top:-34px}
+  .tm-name{font-size:15px}.tm-card.lg .tm-name{font-size:18px}
+  .tm-btn{padding:6px 10px;font-size:12px}
+}
