@@ -75,7 +75,6 @@ export default function App() {
         <header>
           <div className="w" style={{ padding: 0 }}>
             <h1>🙏 {S.set.gaam || "ગામ"} – {S.set.mandal || "ફંડ હિસાબ"}</h1>
-            <div className="mu">{admin ? "👤 મંડળ (પ્રમુખ/ખજાનચી) વિભાગ" : "👥 ગામ લોકો માટે (ફક્ત જોવા માટે)"}</div>
           </div>
         </header>
         <main className="w content-wrap">
