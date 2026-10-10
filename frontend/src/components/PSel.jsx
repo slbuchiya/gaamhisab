@@ -4,7 +4,7 @@ export default function PSel() {
   return (
     <div className="row"><b>કાર્યક્રમ:</b>
       <select value={pid} onChange={(e) => setPid(e.target.value)}>
-        <option value="all">બધા કાર્યક્રમ</option>
+        <option value="all">કાર્યક્રમ પસંદ કરો </option>
         {S.prog.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
       </select>
     </div>

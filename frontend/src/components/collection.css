@@ -1,0 +1,10 @@
+/* ===== ઉઘરાણી: આપ્યા / બાકી ===== */
+.cl-h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:18px 0 8px;padding:10px 14px;border-radius:12px;font-weight:700;font-size:16.5px}
+.cl-h.ok{background:#16a34a1f;color:var(--ok);border-left:5px solid var(--ok)}
+.cl-h.pend{background:#d977061f;color:#d97706;border-left:5px solid #d97706}
+.cl-badge{background:currentColor;border-radius:20px;padding:1px 12px;font-size:15px}
+.cl-badge>span{color:var(--bg);font-weight:700}
+.cl-foot{margin-top:8px;padding:10px 12px;border-radius:10px;background:#16a34a1a;font-weight:700;text-align:center}
+.cl-foot.pend{background:#d977061a}
+.cl-empty{padding:14px 4px;color:var(--mu);text-align:center}
+.cl-row-paid{background:linear-gradient(90deg,#16a34a0f,transparent)}
