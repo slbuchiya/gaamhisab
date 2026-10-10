@@ -1,0 +1,23 @@
+/* ===== રિપોર્ટ પેજ ===== */
+.rp-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px}
+.rp-tabs button{flex:1 1 150px;padding:11px 12px;border-radius:12px;border:1px solid var(--bd);background:var(--card);color:var(--tx);font:inherit;font-weight:600;cursor:pointer}
+.rp-tabs button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.rp-sum{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:10px 0}
+@media(min-width:700px){.rp-sum{grid-template-columns:repeat(4,1fr)}}
+.rp-c{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:12px 8px;text-align:center}
+.rp-c span{display:block;font-size:12.5px;color:var(--mu)}.rp-c b{display:block;font-size:19px;margin-top:2px}
+.rp-c.good b{color:var(--ok)}.rp-c.bad b{color:var(--bad)}
+.rp-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.rp-t{width:100%;border-collapse:collapse;font-size:14.5px}
+.rp-t th{background:var(--ac);color:#fff;text-align:left;padding:8px;white-space:nowrap}
+.rp-t td{padding:8px;border-bottom:1px solid var(--bd)}
+.rp-t tr:nth-child(even) td{background:#c2410c0d}
+.rp-t .r{text-align:right;white-space:nowrap}
+.rp-t tfoot td{font-weight:700;background:#c2410c1f;border-bottom:0}
+.rp-h{font-size:17px;font-weight:700;margin:18px 0 8px;padding-left:10px;border-left:4px solid var(--ac)}
+.rp-den{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:8px 0}
+.rp-den label{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:6px 8px}
+.rp-den input{width:70px;padding:6px}
+.rp-res{border-radius:14px;padding:14px;text-align:center;font-weight:700;margin-top:10px}
+.rp-res.ok{background:#16a34a22;color:var(--ok)}.rp-res.low{background:#dc262622;color:var(--bad)}.rp-res.high{background:#d9770622;color:#d97706}
+.rp-pdf{display:inline-block;text-decoration:none}

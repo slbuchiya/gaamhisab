@@ -1,7 +1,7 @@
 import { API } from "./api.js";
 export const N = (v) => Number(v) || 0;
 export const R = (v) => "₹" + N(v).toLocaleString("en-IN");
-export const today = () => new Date().toISOString().slice(0, 10);
+export const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); }; // ભારતની (સ્થાનિક) તારીખ
 export const pname = (S, id) => (S.prog.find((p) => p.id === id) || {}).name || "—";
 export const inP = (pid) => (x) => pid === "all" || x.pid === pid;
 export const sum = (a) => a.reduce((t, x) => t + N(x.amount), 0);
@@ -70,3 +70,15 @@ export function fileToAvatar(file) {
     img.src = url;
   });
 }
+
+// કાર્યક્રમ મુજબ આવક-જાવક
+export function programStats(S, pid) {
+  const pays = S.pay.filter((x) => x.pid === pid).sort((a, b) => (a.no || 0) - (b.no || 0));
+  const don = S.don.filter((x) => x.pid === pid);
+  const cash = don.filter((d) => d.kind === "cash"), items = don.filter((d) => d.kind !== "cash");
+  const exps = S.exp.filter((x) => x.pid === pid);
+  const ug = sum(pays), dc = sum(cash), ex = sum(exps);
+  return { pays, cash, items, exps, ug, dc, ex, inc: ug + dc, bal: ug + dc - ex };
+}
+export const DEN = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+export const reportUrl = (p) => (API ? `${API}/api/report/${p}` : "");

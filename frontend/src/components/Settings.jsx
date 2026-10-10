@@ -19,4 +19,23 @@ function Form({ init }) {
     </div>
   );
 }
-export default function Settings() { const { S } = useApp(); return <Form key={JSON.stringify(S.set)} init={S.set} />; }
+function Backup() {
+  const [busy, setBusy] = useState(false);
+  const go = async () => {
+    setBusy(true);
+    try {
+      const d = await api("backup");
+      const url = URL.createObjectURL(new Blob([JSON.stringify(d)], { type: "application/json" }));
+      const a = document.createElement("a"); a.href = url; a.download = `gaam-backup-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) { alert(e.message); }
+    setBusy(false);
+  };
+  return (
+    <div className="card"><b>💾 ડેટાનો બેકઅપ</b>
+      <div className="mu">આખો ડેટા (ઘર, ઉઘરાણી, દાન, ખર્ચ, ફોટા) એક ફાઇલમાં સેવ થશે. અઠવાડિયે એકવાર લેવો અને કમ્પ્યુટર/ડ્રાઇવમાં સાચવવો.</div>
+      <button className="b p" disabled={busy} onClick={go}>{busy ? "તૈયાર થાય છે…" : "⬇️ બેકઅપ ડાઉનલોડ કરો"}</button>
+    </div>
+  );
+}
+export default function Settings() { const { S } = useApp(); return <><Form key={JSON.stringify(S.set)} init={S.set} /><Backup /></>; }

@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useApp } from "../ctx.js";
 import { api } from "../api.js";
-import { R, N, pname, inP, sendWa } from "../utils.js";
+import { R, N, pname, inP, sendWa, today } from "../utils.js";
 import PSel from "./PSel.jsx";
 export default function Donations() {
   const { S, admin, pid, run, showRc } = useApp();
   const [phone, setPhone] = useState(""), [donor, setDonor] = useState(""), [kind, setKind] = useState("cash"), [v, setV] = useState("");
   const add = async () => {
     if (!donor.trim() || !v.trim()) return alert("નામ અને રકમ/વસ્તુ લખો");
-    const d = { pid, donor: donor.trim(), kind, phone: phone.trim() };
+    const d = { pid, donor: donor.trim(), kind, phone: phone.trim(), date: today() };
     if (kind === "cash") d.amount = N(v); else d.item = v.trim();
     if (await run(() => api("donations", "POST", d))) { setDonor(""); setV(""); setPhone(""); }
   };

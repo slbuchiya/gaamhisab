@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useApp } from "../ctx.js";
 import { api } from "../api.js";
-import { R, N, pname, inP, totals } from "../utils.js";
+import { R, N, pname, inP, totals, today } from "../utils.js";
 import PSel from "./PSel.jsx";
 export default function Expenses() {
   const { S, admin, pid, run } = useApp();
   const [detail, setDetail] = useState(""), [amt, setAmt] = useState("");
   const add = async () => {
     if (!detail.trim() || !N(amt)) return alert("વિગત અને રકમ લખો");
-    if (await run(() => api("expenses", "POST", { pid, detail: detail.trim(), amount: N(amt) }))) { setDetail(""); setAmt(""); }
+    if (await run(() => api("expenses", "POST", { pid, detail: detail.trim(), amount: N(amt), date: today() }))) { setDetail(""); setAmt(""); }
   };
   const del = (id) => confirm("ખરેખર કાઢી નાખવું છે?") && run(() => api("expenses/" + id, "DELETE"));
   const l = S.exp.filter(inP(pid));

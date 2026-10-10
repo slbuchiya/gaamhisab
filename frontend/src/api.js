@@ -15,6 +15,6 @@ export async function api(p, method = "GET", body) {
   });
   const j = await r.json().catch(() => ({}));
   if (r.status === 401 && token && p !== "login") { setToken(""); window.dispatchEvent(new Event("logout")); }
-  if (!r.ok) throw new Error(j.error || "ભૂલ");
+  if (!r.ok) throw new Error(j.error || ("ભૂલ " + r.status));
   return j;
 }
