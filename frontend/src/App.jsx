@@ -16,7 +16,7 @@ import Settings from "./components/Settings.jsx";
 import Login from "./components/Login.jsx";
 import Receipt from "./components/Receipt.jsx";
 
-const empty = { prog: [], mem: [], pay: [], exp: [], don: [], set: {} };
+const empty = { prog: [], mem: [], fam: [], pay: [], exp: [], don: [], set: {} };
 
 export default function App() {
   const [S, setS] = useState(empty);
@@ -36,7 +36,7 @@ export default function App() {
   const load = useCallback(async () => {
     try {
       const d = await api("all");
-      setS({ prog: d.prog || [], mem: d.mem || [], pay: d.pay || [], exp: d.exp || [], don: d.don || [], set: d.set || {} });
+      setS({ prog: d.prog || [], mem: d.mem || [], fam: d.fam || [], pay: d.pay || [], exp: d.exp || [], don: d.don || [], set: d.set || {} });
       setErr("");
     } catch { setErr("સર્વર સાથે જોડાઈ શકાયું નથી. થોડીવાર પછી ફરી ખોલો."); }
     setLoaded(true);
@@ -66,7 +66,7 @@ export default function App() {
   const logout = () => { setToken(""); setAdmin(false); setTab("home"); load(); };
 
   const tabs = [["home", "🏠 હોમ"], ["sum", "📊 સારાંશ"], ["ug", "✅ ઉઘરાણી"], ["dn", "🎁 દાન"], ["ex", "💸 ખર્ચ"], ["rep", "📈 રિપોર્ટ"],
-    ...(admin ? [["ph", "🖼 ફોટા"], ["pg", "📅 કાર્યક્રમ"], ["gm", "🏠 ગામ યાદી"], ["st", "⚙️ સેટિંગ"]] : []),
+    ...(admin ? [["ph", "🖼 ફોટા"], ["pg", "📅 કાર્યક્રમ"], ["gm", "🏠 ગામ યાદી / કુટુંબ"], ["st", "⚙️ સેટિંગ"]] : []),
     ["team", "👥 સમિતિ"], ["contact", "📞 સંપર્ક"], ["lg", admin ? "🚪 લૉગઆઉટ" : "🔐 મંડળ લૉગિન"]];
   const View = { home: Home, sum: Summary, contact: Contact, team: Team, rep: Reports, ph: Photos, ug: Collection, dn: Donations, ex: Expenses, pg: Programs, gm: Members, st: Settings }[tab];
 

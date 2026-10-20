@@ -1,0 +1,11 @@
+/* ===== ગામ યાદી / કુટુંબ ===== */
+.fm-chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.fm-chips .b{padding:6px 12px;font-size:14px}
+.fm-fam{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--bd)}
+.fm-fam:last-child{border-bottom:0}
+.fm-bar{position:sticky;top:52px;z-index:4;background:var(--card);border:1px solid var(--ac);border-radius:12px;padding:10px 12px;margin:10px 0;box-shadow:0 3px 10px #0002}
+.fm-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fm-row .nm{flex:1;min-width:150px}
+.fm-row select{max-width:150px;padding:5px}
+.fm-tag{display:inline-block;background:#c2410c1f;color:var(--ac);border-radius:12px;padding:0 9px;font-size:12px;margin-left:4px}
+.fm-row input[type=checkbox]{width:20px;height:20px;accent-color:var(--ac)}

@@ -8,7 +8,7 @@ import PSel from "./PSel.jsx";
 
 export default function Collection() {
   const { S, admin, pid, run, showRc } = useApp();
-  const [q, setQ] = useState(""), [sheet, setSheet] = useState(null);
+  const [q, setQ] = useState(""), [sheet, setSheet] = useState(null), [fid, setFid] = useState("all");
   if (pid === "all") return <><PSel /><div className="card">ઉઘરાણી જોવા/કરવા ઉપરથી કોઈ એક કાર્યક્રમ પસંદ કરો.</div></>;
   const prog = S.prog.find((p) => p.id === pid);
   const paid = Object.fromEntries(S.pay.filter((x) => x.pid === pid).map((x) => [x.mid, x]));
@@ -20,7 +20,9 @@ export default function Collection() {
   const pct = S.mem.length ? Math.round((paidAll.length * 100) / S.mem.length) : 0;
   const est = prog && N(prog.amount) ? N(prog.amount) * pendAll.length : 0;
 
-  const match = (m) => m.name.toLowerCase().includes(q.trim().toLowerCase());
+  const fam = S.fam || [], famIds = new Set(fam.map((x) => x.id));
+  const inFam = (m) => fid === "all" || (fid === "none" ? !famIds.has(m.fid) : m.fid === fid);
+  const match = (m) => inFam(m) && m.name.toLowerCase().includes(q.trim().toLowerCase());
   // જેમણે આપ્યા: છેલ્લે આપનાર સૌથી ઉપર   |   બાકી: નામ મુજબ
   const paidList = paidAll.filter(match).sort((a, b) => (N(paid[b.id].no) - N(paid[a.id].no)) || a.name.localeCompare(b.name, "gu"));
   const pendList = pendAll.filter(match).sort((a, b) => a.name.localeCompare(b.name, "gu"));
@@ -84,7 +86,13 @@ export default function Collection() {
       <div className="mu">ઉઘરાણી પ્રગતિ: {pct}%{est > 0 && <> • બાકી અંદાજ: {R(est)}</>}</div>
       <div className="bar"><i style={{ width: pct + "%" }} /></div>
     </div>
-    <div className="row"><input placeholder="🔍 નામ શોધો" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+    <div className="row"><input placeholder="🔍 નામ શોધો" value={q} onChange={(e) => setQ(e.target.value)} />
+      {fam.length > 0 && <select value={fid} onChange={(e) => setFid(e.target.value)}>
+        <option value="all">👨‍👩‍👧‍👦 બધા કુટુંબ</option>
+        {fam.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+        <option value="none">કુટુંબ વગર</option>
+      </select>}
+    </div>
 
     <div className="cl-h ok"><span>✅ મળેલ રકમ </span><span>{paidList.length}{q && paidList.length !== paidAll.length ? ` / ${paidAll.length}` : ""} ઘર</span></div>
     <div className="card">

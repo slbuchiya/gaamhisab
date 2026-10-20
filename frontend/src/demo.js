@@ -1,6 +1,6 @@
 // ડેમો મોડ: VITE_API_URL ખાલી હોય ત્યારે બ્રાઉઝરમાં જ ડેટા સચવાય (સાચા બેકએન્ડની નકલ)
 const K = "gaam-demo";
-const base = { programs: [], members: [], payments: [], expenses: [], donations: [], photos: [], team: [], set: {}, n: 0 };
+const base = { programs: [], families: [], members: [], payments: [], expenses: [], donations: [], photos: [], team: [], set: {}, n: 0 };
 const load = () => ({ ...base, ...JSON.parse(localStorage.getItem(K) || "{}") });
 const save = (d) => localStorage.setItem(K, JSON.stringify(d));
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -13,11 +13,16 @@ export async function demoApi(p, method, body, token) {
     throw new Error("યુઝરનેમ કે પાસવર્ડ ખોટો");
   }
   const strip = (a) => a.map((x) => { const o = { ...x }; if (!token) delete o.phone; return o; });
-  if (p === "all") return { prog: d.programs, mem: strip(d.members), pay: d.payments, exp: d.expenses, don: strip(d.donations), set: d.set };
+  if (p === "all") return { prog: d.programs, mem: strip(d.members), fam: d.families, pay: d.payments, exp: d.expenses, don: strip(d.donations), set: d.set };
   if (p === "photos" && method === "GET") return [...d.photos].reverse();
   if (p === "team" && method === "GET") return d.team;
   if (!token) throw new Error("પહેલા લૉગિન કરો");
   if (p === "settings") { d.set = body; save(d); return { ok: true }; }
+  if (p === "assign") {
+    const ids = new Set(body.ids || []);
+    d.members = d.members.map((m) => (ids.has(m.id) ? { ...m, fid: body.fid || "" } : m));
+    save(d); return { ok: true, n: ids.size };
+  }
   if (!d[c]) throw new Error("ખોટી વિનંતી");
   if (method === "POST") {
     const out = [];
@@ -41,6 +46,7 @@ export async function demoApi(p, method, body, token) {
     d[c] = d[c].filter((x) => x.id !== id);
     if (c === "programs") ["payments", "expenses", "donations"].forEach((t) => (d[t] = d[t].filter((x) => x.pid !== id)));
     if (c === "members") d.payments = d.payments.filter((x) => x.mid !== id);
+    if (c === "families") d.members = d.members.map((m) => (m.fid === id ? { ...m, fid: "" } : m));
     save(d); return { ok: true };
   }
   throw new Error("ખોટી વિનંતી");

@@ -47,7 +47,8 @@ const ROLES = ["પ્રમુખ", "ઉપ પ્રમુખ", "ખજાન�
 
 const M = {
   programs: mk("Program", { name: str(100), amount: { type: Number, default: 0, min: 0, max: 1e8 }, date: dateF }),
-  members: mk("Member", { name: str(100), phone: { type: String, trim: true, maxlength: 20 } }),
+  families: mk("Family", { name: str(100), order: { type: Number, default: 0 } }),
+  members: mk("Member", { name: str(100), phone: { type: String, trim: true, maxlength: 20 }, fid: { type: String, trim: true, maxlength: 40, default: "" } }),
   payments: mk("Payment", { pid: str(40), mid: str(40), amount: { type: Number, required: true, min: 0, max: 1e8 }, date: dateF, no: Number }, { pid: 1, mid: 1 }),
   expenses: mk("Expense", { pid: str(40), detail: str(200), amount: { type: Number, required: true, min: 0, max: 1e8 }, date: dateF }),
   donations: mk("Donation", { pid: str(40), donor: str(100), kind: { type: String, enum: ["cash", "item"], required: true }, amount: { type: Number, min: 0, max: 1e8 }, item: { type: String, trim: true, maxlength: 200 }, phone: { type: String, trim: true, maxlength: 20 }, date: dateF, no: Number }),
@@ -90,13 +91,13 @@ app.post("/api/login", S.limiter(30, 15 * 60e3, "બહુ પ્રયત્ન
 
 // મોબાઇલ નંબર ફક્ત લૉગિન કરેલ મંડળને દેખાય; ગામ લોકોને નહીં
 app.get("/api/all", wrap(async (req, res) => {
-  const [prog, mem, pay, exp, don, set] = await Promise.all([
-    M.programs.find(), M.members.find(), M.payments.find(), M.expenses.find(), M.donations.find(), Setting.findById(1)
+  const [prog, mem, pay, exp, don, set, fam] = await Promise.all([
+    M.programs.find(), M.members.find(), M.payments.find(), M.expenses.find(), M.donations.find(), Setting.findById(1), M.families.find().sort({ order: 1, _id: 1 })
   ]);
   const adm = isAdmin(req);
   const strip = (arr) => arr.map(d => { const o = d.toJSON(); if (!adm) delete o.phone; return o; });
   res.set("Cache-Control", "no-store");
-  res.json({ prog: prog.map(progJson), mem: strip(mem), pay, exp, don: strip(don), set: set || {} });
+  res.json({ prog: prog.map(progJson), mem: strip(mem), fam, pay, exp, don: strip(don), set: set || {} });
 }));
 app.get("/api/photos", wrap(async (req, res) => { res.json(await M.photos.find().sort({ _id: -1 }).limit(60)); }));
 app.get("/api/team", wrap(async (req, res) => { res.json(await M.team.find().sort({ order: 1, _id: 1 })); }));
@@ -201,7 +202,17 @@ app.put("/api/settings", writes, auth, small, wrap(async (req, res) => {
   audit(req, "settings"); res.json({ ok: true });
 }));
 
-const EDIT = { members: ["name", "phone"], donations: ["phone"], photos: ["caption"], team: ["role", "name", "phone", "photo"], programs: ["name", "amount", "date"] };
+// ઘરોને કુટુંબમાં વહેંચવા: { ids: [ઘરના id...], fid: "કુટુંબ id" } (fid ખાલી = કુટુંબ વગર)
+app.put("/api/assign", writes, auth, big, wrap(async (req, res) => {
+  const b = req.body || {}, fid = String(b.fid || "");
+  const ids = (Array.isArray(b.ids) ? b.ids : []).map(String).filter(mongoose.isValidObjectId).slice(0, 2000);
+  if (!ids.length) return res.status(400).json({ error: "કોઈ ઘર પસંદ નથી" });
+  if (fid && (!mongoose.isValidObjectId(fid) || !(await M.families.exists({ _id: fid })))) return res.status(400).json({ error: "કુટુંબ મળ્યું નહીં" });
+  const r = await M.members.updateMany({ _id: { $in: ids } }, { fid });
+  audit(req, "assign", `${ids.length}→${fid || "-"}`); res.json({ ok: true, n: r.modifiedCount });
+}));
+
+const EDIT = { members: ["name", "phone", "fid"], families: ["name"], donations: ["phone"], photos: ["caption"], team: ["role", "name", "phone", "photo"], programs: ["name", "amount", "date"] };
 app.put("/api/:c/:id", writes, auth, big, wrap(async (req, res) => {
   const { c, id } = req.params, Model = M[c], f = EDIT[c];
   if (!Model || !f || !mongoose.isValidObjectId(id)) return res.sendStatus(404);
@@ -218,6 +229,7 @@ app.post("/api/:c", writes, auth, big, wrap(async (req, res) => {
     if (!b || typeof b !== "object") return res.status(400).json({ error: "ખોટી માહિતી" });
     const d = { ...b }; delete d._id; delete d.id; delete d.no;
     if (req.params.c === "payments" || req.params.c === "donations") d.no = await nextNo();
+    if (req.params.c === "families") d.order = Date.now();
     docs.push(d);
   }
   const created = await Model.create(docs);
@@ -230,6 +242,7 @@ app.delete("/api/:c/:id", writes, auth, wrap(async (req, res) => {
   await Model.findByIdAndDelete(id);
   if (c === "programs") await Promise.all([M.payments, M.expenses, M.donations].map(m => m.deleteMany({ pid: id })));
   if (c === "members") await M.payments.deleteMany({ mid: id });
+  if (c === "families") await M.members.updateMany({ fid: id }, { fid: "" });
   audit(req, "delete " + c, id); res.json({ ok: true });
 }));
 
@@ -242,7 +255,15 @@ app.use((err, req, res, next) => {
   console.error(err.message); res.status(500).json({ error: "સર્વર ભૂલ" });
 });
 
-mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 15000 }).then(async () => {
-  await M.payments.init();
-  app.listen(PORT, () => console.log("ચાલુ છે, port " + PORT));
-}).catch(e => { console.error("MongoDB કનેક્ટ ન થયું:", e.message); process.exit(1); });
+mongoose.connect(process.env.MONGODB_URI)
+  .then(async () => {
+    console.log("MongoDB કનેક્ટ થઈ ગયું!");
+    await M.payments.init();
+
+    app.listen(PORT, () => console.log("ચાલુ છે, port " + PORT));
+  })
+  .catch(e => {
+    console.error("MongoDB કનેક્ટ ન થયું:", e.message);
+    process.exit(1);
+  });
+
