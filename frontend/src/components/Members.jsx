@@ -57,8 +57,7 @@ export default function Members() {
   );
 
   return (<>
-    <div className="card"><b>👨‍👩‍👧‍👦 કુટુંબ (જૂથ) બનાવો</b>
-      <div className="mu">ગામના મોટા કુટુંબો, દા.ત. "બુચિયા પરિવાર", "પટેલ પરિવાર". પછી નીચે ઘરોને તેમાં વહેંચો.</div>
+    <div className="card"><b>👨‍👩‍👧‍👦 કુટુંબ બનાવો</b>
       <div className="row">
         <input placeholder="કુટુંબનું નામ" value={fname} onChange={(e) => setFname(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addFam()} />
         <button className="b p" onClick={addFam}>કુટુંબ ઉમેરો</button>
