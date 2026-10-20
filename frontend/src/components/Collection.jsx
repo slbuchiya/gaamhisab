@@ -6,7 +6,6 @@ import { api } from "../api.js";
 import { R, N, today, waPhone, waLink, receiptText } from "../utils.js";
 import PSel from "./PSel.jsx";
 
-// ઉઘરાણી (Collection) પાનું માં થયેલ ચેંજ 
 export default function Collection() {
   const { S, admin, pid, run, showRc } = useApp();
   const [q, setQ] = useState(""), [sheet, setSheet] = useState(null), [fid, setFid] = useState("all");
