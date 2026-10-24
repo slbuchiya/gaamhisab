@@ -5,6 +5,9 @@ export const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() -
 export const pname = (S, id) => (S.prog.find((p) => p.id === id) || {}).name || "—";
 export const inP = (pid) => (x) => pid === "all" || x.pid === pid;
 export const sum = (a) => a.reduce((t, x) => t + N(x.amount), 0);
+// કુલ બચત = જૂની બચત (સેટિંગમાં લખેલી) + નવી બચત (આવક − ખર્ચ)
+export const openBal = (S) => N(S.set && S.set.openBal);
+export const grandBal = (S) => openBal(S) + totals(S, "all").bal;
 export function totals(S, pid) {
   const f = inP(pid);
   const ug = sum(S.pay.filter(f));

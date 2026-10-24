@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, setToken, getToken, DEMO } from "./api.js";
+import { api, setToken, getSession, DEMO } from "./api.js";
 import { AppCtx } from "./ctx.js";
 import Home from "./components/Home.jsx";
 import Photos from "./components/Photos.jsx";
@@ -20,7 +20,9 @@ const empty = { prog: [], mem: [], fam: [], pay: [], exp: [], don: [], set: {} }
 
 export default function App() {
   const [S, setS] = useState(empty);
-  const [admin, setAdmin] = useState(!!getToken());
+  const [sess, setSess] = useState(getSession());
+  const admin = sess?.role === "admin";
+  const kut = sess?.role === "kutumb" ? { fid: sess.fid } : null;
   const [tab, setTab] = useState("home");
   const [pid, setPid] = useState("all");
   const [err, setErr] = useState("");
@@ -45,7 +47,7 @@ export default function App() {
   useEffect(() => {
     load();
     const t = setInterval(() => { if (!document.hidden) load(); }, 30000);
-    const lo = () => setAdmin(false);
+    const lo = () => setSess(null);
     window.addEventListener("logout", lo);
     return () => { clearInterval(t); window.removeEventListener("logout", lo); };
   }, [load]);
@@ -62,28 +64,28 @@ export default function App() {
   }, [loaded]);
 
   const run = async (fn) => { try { await fn(); await load(); return true; } catch (e) { alert(e.message); return false; } };
-  const login = (t) => { setToken(t); setAdmin(true); setTab("home"); load(); };
-  const logout = () => { setToken(""); setAdmin(false); setTab("home"); load(); };
+  const login = (t) => { setToken(t); const x = getSession(); setSess(x); setTab(x?.role === "kutumb" ? "ug" : "home"); load(); };
+  const logout = () => { setToken(""); setSess(null); setTab("home"); load(); };
 
   const tabs = [["home", "🏠 હોમ"], ["sum", "📊 સારાંશ"], ["ug", "✅ ઉઘરાણી"], ["dn", "🎁 દાન"], ["ex", "💸 ખર્ચ"], ["rep", "📈 રિપોર્ટ"],
     ...(admin ? [["ph", "🖼 ફોટા"], ["pg", "📅 કાર્યક્રમ"], ["gm", "🏠 ગામ યાદી / કુટુંબ"], ["st", "⚙️ સેટિંગ"]] : []),
-    ["team", "👥 સમિતિ"], ["contact", "📞 સંપર્ક"], ["lg", admin ? "🚪 લૉગઆઉટ" : "🔐 મંડળ લૉગિન"]];
+    ["team", "👥 સમિતિ"], ["contact", "📞 સંપર્ક"], ["lg", admin || kut ? "🚪 લૉગઆઉટ" : "🔐 લૉગિન"]];
   const View = { home: Home, sum: Summary, contact: Contact, team: Team, rep: Reports, ph: Photos, ug: Collection, dn: Donations, ex: Expenses, pg: Programs, gm: Members, st: Settings }[tab];
 
   return (
-    <AppCtx.Provider value={{ S, admin, pid, setPid, run, showRc: setRc, photos, loadPhotos, setTab, team, loadTeam }}>
+    <AppCtx.Provider value={{ S, admin, kut, pid, setPid, run, showRc: setRc, photos, loadPhotos, setTab, team, loadTeam }}>
       <div className="app-wrapper">
         <header>
           <div className="w" style={{ padding: 0 }}>
             <h1>🙏 {S.set.gaam || "ગામ"} – {S.set.mandal || "ફંડ હિસાબ"}</h1>
-            <div className="mu">{admin ? "👤 મંડળ (પ્રમુખ/ખજાનચી) વિભાગ" : "👥 ગામ લોકો માટે (ફક્ત જોવા માટે)"}</div>
+            <div className="mu">{admin ? "👤 મંડળ (પ્રમુખ/ખજાનચી) વિભાગ" : kut ? `👨‍👩‍👧‍👦 ${(S.fam.find((x) => x.id === kut.fid) || {}).name || "કુટુંબ"} – ઉઘરાણી વિભાગ (ફક્ત તમારા કુટુંબની ઉઘરાણી)` : "👥 ગામ લોકો માટે (ફક્ત જોવા માટે)"}</div>
           </div>
         </header>
         <main className="w content-wrap">
           {DEMO && <div className="demo">⚠️ ડેમો મોડ: ડેટા ફક્ત આ બ્રાઉઝરમાં સચવાય છે. સાચો ડેટાબેઝ વાપરવા <code>VITE_API_URL</code> સેટ કરો.</div>}
           <div className="tabs">
             {tabs.map(([k, n]) => (
-              <button key={k} className={tab === k ? "on" : ""} onClick={() => { if (k === "lg" && admin) logout(); else setTab(k); }}>{n}</button>
+              <button key={k} className={tab === k ? "on" : ""} onClick={() => { if (k === "lg" && (admin || kut)) logout(); else setTab(k); }}>{n}</button>
             ))}
           </div>
           {err && <div className="card">{err}</div>}

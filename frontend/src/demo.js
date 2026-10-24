@@ -9,14 +9,29 @@ const today = () => new Date().toISOString().slice(0, 10);
 export async function demoApi(p, method, body, token) {
   const d = load(), [c, id] = p.split("/");
   if (p === "login") {
-    if (body.user === "pramukh" && body.pass === "1234") return { token: "demo" };
+    if (body.user === "pramukh" && body.pass === "1234") return { token: "demo", role: "admin" };
+    const kf = d.families.find((x) => x.user && x.user === String(body.user).toLowerCase() && x.pass === body.pass);
+    if (kf) return { token: "k:" + kf.id, role: "kutumb" };
     throw new Error("યુઝરનેમ કે પાસવર્ડ ખોટો");
   }
+  const kfid = token.startsWith("k:") ? token.slice(2) : "";
   const strip = (a) => a.map((x) => { const o = { ...x }; if (!token) delete o.phone; return o; });
-  if (p === "all") return { prog: d.programs, mem: strip(d.members), fam: d.families, pay: d.payments, exp: d.expenses, don: strip(d.donations), set: d.set };
+  const stripM = (a) => a.map((x) => { const o = { ...x }; if (!token || (kfid && x.fid !== kfid)) delete o.phone; return o; });
+  const famOut = d.families.map(({ pass, ...f }) => ({ ...f, hasLogin: !!f.user, ...(token && !kfid ? {} : { user: undefined }) }));
+  if (p === "all") return { prog: d.programs, mem: stripM(d.members), fam: famOut, pay: d.payments, exp: d.expenses, don: strip(d.donations), set: d.set };
   if (p === "photos" && method === "GET") return [...d.photos].reverse();
   if (p === "team" && method === "GET") return d.team;
   if (!token) throw new Error("પહેલા લૉગિન કરો");
+  if (kfid) { // કુટુંબનું લૉગિન: ફક્ત પોતાના કુટુંબની ઉઘરાણી
+    const mine = (mid) => d.members.some((m) => m.id === mid && m.fid === kfid);
+    const okPay = c === "payments" && ((method === "POST" && (Array.isArray(body) ? body : [body]).every((b) => mine(b.mid))) || (method === "DELETE" && mine((d.payments.find((x) => x.id === id) || {}).mid)));
+    const okMem = c === "members" && method === "PUT" && mine(id) && Object.keys(body).every((k) => k === "phone");
+    if (!okPay && !okMem) throw new Error("આ કામ ફક્ત મંડળ (પ્રમુખ/ખજાનચી) કરી શકે");
+  }
+  if (p === "family-login") {
+    d.families = d.families.map((f) => (f.id !== body.id ? f : body.remove ? { ...f, user: undefined, pass: undefined } : { ...f, user: String(body.user).toLowerCase(), pass: body.pass }));
+    save(d); return { ok: true };
+  }
   if (p === "settings") { d.set = body; save(d); return { ok: true }; }
   if (p === "assign") {
     const ids = new Set(body.ids || []);

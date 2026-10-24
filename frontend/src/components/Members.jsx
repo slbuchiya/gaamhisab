@@ -23,6 +23,16 @@ export default function Members() {
   const renFam = (x) => { const v = prompt("કુટુંબનું નવું નામ", x.name); if (v && v.trim() && v.trim() !== x.name) run(() => api("families/" + x.id, "PUT", { name: v.trim() })); };
   const delFam = (x) => confirm(`"${x.name}" કુટુંબ કાઢવું છે?\n(તેના ${cnt(x.id)} ઘર કાઢી નહીં નાખીએ, ફક્ત "કુટુંબ વગર" થઈ જશે)`) && run(async () => { await api("families/" + x.id, "DELETE"); if (f === x.id) setF("all"); });
 
+  // કુટુંબના મુખ્ય વ્યક્તિ માટે યુઝરનેમ/પાસવર્ડ (તે ફક્ત પોતાના કુટુંબની ઉઘરાણી કરી શકે)
+  const setLogin = (x) => {
+    const u = prompt(`"${x.name}" ના મુખ્ય વ્યક્તિ માટે યુઝરનેમ (a-z, 0-9, ઓછામાં ઓછા 3 અક્ષર)`, x.user || "");
+    if (!u || !u.trim()) return;
+    const p = prompt("પાસવર્ડ (ઓછામાં ઓછા 6 અક્ષર)", "");
+    if (!p) return;
+    run(async () => { await api("family-login", "PUT", { id: x.id, user: u.trim(), pass: p }); alert(`લૉગિન તૈયાર ✅\nયુઝરનેમ: ${u.trim().toLowerCase()}\nપાસવર્ડ: ${p}\nઆ મુખ્ય વ્યક્તિને આપી દો.`); });
+  };
+  const rmLogin = (x) => confirm(`"${x.name}" નું લૉગિન કાઢી નાખવું છે?`) && run(() => api("family-login", "PUT", { id: x.id, remove: true }));
+
   // ---- ઘર ----
   const add = async () => {
     if (name.trim() && await run(() => api("members", "POST", { name: name.trim(), phone: phone.trim(), fid: addFid }))) { setName(""); setPhone(""); }
@@ -57,7 +67,8 @@ export default function Members() {
   );
 
   return (<>
-    <div className="card"><b>👨‍👩‍👧‍👦 કુટુંબ બનાવો</b>
+    <div className="card"><b>👨‍👩‍👧‍👦 કુટુંબ (જૂથ) બનાવો</b>
+      <div className="mu">ગામના મોટા કુટુંબો, દા.ત. "બુચિયા પરિવાર", "પટેલ પરિવાર". પછી નીચે ઘરોને તેમાં વહેંચો.</div>
       <div className="row">
         <input placeholder="કુટુંબનું નામ" value={fname} onChange={(e) => setFname(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addFam()} />
         <button className="b p" onClick={addFam}>કુટુંબ ઉમેરો</button>
@@ -65,7 +76,7 @@ export default function Members() {
       {fam.map((x) => (
         <div className="fm-fam" key={x.id}>
           <span>👨‍👩‍👧‍👦 <b>{x.name}</b> <span className="mu">• {cnt(x.id)} ઘર</span></span>
-          <span><button className="b" onClick={() => renFam(x)}>✏️ નામ</button> <button className="b d" onClick={() => delFam(x)}>🗑</button></span>
+          <span>{x.hasLogin && <span className="fm-tag">🔑 {x.user}</span>} <button className="b" onClick={() => setLogin(x)}>🔑 {x.hasLogin ? "લૉગિન બદલો" : "લૉગિન બનાવો"}</button> {x.hasLogin && <button className="b d" onClick={() => rmLogin(x)}>લૉગિન કાઢો</button>} <button className="b" onClick={() => renFam(x)}>✏️ નામ</button> <button className="b d" onClick={() => delFam(x)}>🗑</button></span>
         </div>))}
       {!fam.length && <div className="mu" style={{ marginTop: 6 }}>હજી કોઈ કુટુંબ બનાવ્યું નથી.</div>}
     </div>

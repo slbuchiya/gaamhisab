@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useApp } from "../ctx.js";
 import MemberCard from "./MemberCard.jsx";
 import "./home.css";
-import { R, totals, pname, waLink, waPhone, ROLES } from "../utils.js";
+import { R, totals, openBal, pname, waLink, waPhone, ROLES } from "../utils.js";
 
 function useCount(to) {
   const [v, setV] = useState(0);
@@ -80,6 +80,7 @@ export default function Home() {
       <Stat icon="📅" label="કાર્યક્રમ" value={S.prog.length} />
       <Stat icon="💰" label="કુલ આવક" value={t.inc} money />
       <Stat icon="🧾" label="કુલ ખર્ચ" value={t.ex} money />
+      <Stat icon="🏦" label="કુલ બચત (જૂની + નવી)" value={openBal(S) + t.bal} money />
     </div>
 
     <div className="card hp-about">

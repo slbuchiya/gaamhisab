@@ -7,17 +7,19 @@ import { R, N, today, waPhone, waLink, receiptText } from "../utils.js";
 import PSel from "./PSel.jsx";
 
 export default function Collection() {
-  const { S, admin, pid, run, showRc } = useApp();
+  const { S, admin, kut, pid, run, showRc } = useApp();
+  const canTick = admin || !!kut; // કુટુંબનું લૉગિન પણ ઉઘરાણી કરી શકે (ફક્ત પોતાના કુટુંબની)
   const [q, setQ] = useState(""), [sheet, setSheet] = useState(null), [fid, setFid] = useState("all");
   if (pid === "all") return <><PSel /><div className="card">ઉઘરાણી જોવા/કરવા ઉપરથી કોઈ એક કાર્યક્રમ પસંદ કરો.</div></>;
   const prog = S.prog.find((p) => p.id === pid);
+  const MEM = kut ? S.mem.filter((m) => m.fid === kut.fid) : S.mem;
   const paid = Object.fromEntries(S.pay.filter((x) => x.pid === pid).map((x) => [x.mid, x]));
 
   // સરવાળો (શોધ ફિલ્ટર વગર આખા ગામનો)
-  const paidAll = S.mem.filter((m) => paid[m.id]);
-  const pendAll = S.mem.filter((m) => !paid[m.id]);
+  const paidAll = MEM.filter((m) => paid[m.id]);
+  const pendAll = MEM.filter((m) => !paid[m.id]);
   const total = paidAll.reduce((a, m) => a + N(paid[m.id].amount), 0);
-  const pct = S.mem.length ? Math.round((paidAll.length * 100) / S.mem.length) : 0;
+  const pct = MEM.length ? Math.round((paidAll.length * 100) / MEM.length) : 0;
   const est = prog && N(prog.amount) ? N(prog.amount) * pendAll.length : 0;
 
   const fam = S.fam || [], famIds = new Set(fam.map((x) => x.id));
@@ -63,12 +65,12 @@ export default function Collection() {
     return (
       <div className={"li" + (p ? " cl-row-paid" : "")}>
         <span>
-          {admin ? <input type="checkbox" checked={!!p} onChange={() => tick(m)} /> : (p ? "✅" : "⬜")} {m.name}
+          {canTick ? <input type="checkbox" checked={!!p} onChange={() => tick(m)} /> : (p ? "✅" : "⬜")} {m.name}
           {p && <span className="mu"> {R(p.amount)} • રસીદ {p.no}</span>}
         </span>
         {p && <span>
           <button className="b" onClick={() => showRc({ ...p, name: m.name, phone: m.phone, kind: "pay" })}>🧾 રસીદ</button>
-          {admin && <> <button className="b" onClick={() => sendRow(p, m)}>📲</button></>}
+          {canTick && <> <button className="b" onClick={() => sendRow(p, m)}>📲</button></>}
         </span>}
       </div>
     );
@@ -80,14 +82,14 @@ export default function Collection() {
       <div className="rp-c good"><span>✅ મળેલ રકમ </span><b>{paidAll.length} ઘર</b></div>
       <div className="rp-c bad"><span>⏳ બાકી રકમ </span><b>{pendAll.length} ઘર</b></div>
       <div className="rp-c"><span>💰 કુલ ઉઘરાણી</span><b>{R(total)}</b></div>
-      <div className="rp-c"><span>કુલ ઘર</span><b>{S.mem.length}</b></div>
+      <div className="rp-c"><span>{kut ? "તમારા કુટુંબના ઘર" : "કુલ ઘર"}</span><b>{MEM.length}</b></div>
     </div>
     <div className="card" style={{ padding: "10px 12px" }}>
       <div className="mu">ઉઘરાણી પ્રગતિ: {pct}%{est > 0 && <> • બાકી અંદાજ: {R(est)}</>}</div>
       <div className="bar"><i style={{ width: pct + "%" }} /></div>
     </div>
     <div className="row"><input placeholder="🔍 નામ શોધો" value={q} onChange={(e) => setQ(e.target.value)} />
-      {fam.length > 0 && <select value={fid} onChange={(e) => setFid(e.target.value)}>
+      {!kut && fam.length > 0 && <select value={fid} onChange={(e) => setFid(e.target.value)}>
         <option value="all">👨‍👩‍👧‍👦 બધા કુટુંબ</option>
         {fam.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
         <option value="none">કુટુંબ વગર</option>

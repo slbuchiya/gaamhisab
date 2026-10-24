@@ -47,7 +47,7 @@ const ROLES = ["પ્રમુખ", "ઉપ પ્રમુખ", "ખજાન�
 
 const M = {
   programs: mk("Program", { name: str(100), amount: { type: Number, default: 0, min: 0, max: 1e8 }, date: dateF }),
-  families: mk("Family", { name: str(100), order: { type: Number, default: 0 } }),
+  families: mk("Family", { name: str(100), order: { type: Number, default: 0 }, user: { type: String, trim: true, maxlength: 30 }, pass: { type: String, maxlength: 200 }, tv: { type: Number, default: 0 } }),
   members: mk("Member", { name: str(100), phone: { type: String, trim: true, maxlength: 20 }, fid: { type: String, trim: true, maxlength: 40, default: "" } }),
   payments: mk("Payment", { pid: str(40), mid: str(40), amount: { type: Number, required: true, min: 0, max: 1e8 }, date: dateF, no: Number }, { pid: 1, mid: 1 }),
   expenses: mk("Expense", { pid: str(40), detail: str(200), amount: { type: Number, required: true, min: 0, max: 1e8 }, date: dateF }),
@@ -55,7 +55,7 @@ const M = {
   photos: mk("Photo", { caption: { type: String, trim: true, maxlength: 200, default: "" }, pid: { type: String, default: "", maxlength: 40 }, data: img(true), date: dateF }),
   team: mk("Team", { role: { type: String, required: true, enum: ROLES }, name: str(100), phone: { type: String, trim: true, maxlength: 20 }, photo: img(false), order: { type: Number, default: 0 } })
 };
-const SET_FIELDS = ["gaam", "mandal", "pramukh", "khajanchi", "mantri", "address", "phone", "email", "pramukhPhone", "khajanchiPhone", "mantriPhone"];
+const SET_FIELDS = ["gaam", "mandal", "pramukh", "khajanchi", "mantri", "address", "phone", "email", "pramukhPhone", "khajanchiPhone", "mantriPhone", "openBal", "openNote"];
 const Setting = mongoose.model("Setting", new mongoose.Schema({ _id: Number, ...Object.fromEntries(SET_FIELDS.map(k => [k, { type: String, maxlength: 300 }])) }, opt));
 const Counter = mongoose.model("Counter", new mongoose.Schema({ _id: String, n: Number }));
 // કોણે શું ફેરફાર કર્યો તેની નોંધ (180 દિવસ સચવાય). Atlas માં "audits" collection માં જોઈ શકાય.
@@ -67,11 +67,27 @@ const nextNo = async () => (await Counter.findByIdAndUpdate("receipt", { $inc: {
 const progDate = (p) => p.date || p._id.getTimestamp().toISOString().slice(0, 10);
 const progJson = (p) => ({ ...p.toJSON(), date: progDate(p) });
 const verify = (req) => jwt.verify((req.headers.authorization || "").replace("Bearer ", ""), JWT_SECRET, { algorithms: ["HS256"] });
-const isAdmin = (req) => { try { verify(req); return true; } catch { return false; } };
+const claims = (req) => { try { return verify(req); } catch { return null; } };
+// પૂરો એડમિન (પ્રમુખ/ખજાનચી). કુટુંબનું લૉગિન (r:"k") આમાં નથી ચાલતું
+const isAdmin = (req) => { const c = claims(req); return !!c && c.r !== "k"; };
 const auth = (req, res, next) => {
-  try { req.user = verify(req).u; next(); }
-  catch { res.status(401).json({ error: "પહેલા લૉગિન કરો" }); }
+  const c = claims(req);
+  if (!c) return res.status(401).json({ error: "પહેલા લૉગિન કરો" });
+  if (c.r === "k") return res.status(403).json({ error: "આ કામ ફક્ત મંડળ (પ્રમુખ/ખજાનચી) કરી શકે" });
+  req.user = c.u; req.role = "admin"; next();
 };
+// એડમિન અથવા કુટુંબનું લૉગિન. કુટુંબનું લૉગિન દર વખતે ડેટાબેઝમાં તપાસાય (પાસવર્ડ બદલાય/લૉગિન કાઢી નાખ્યું હોય તો જૂનો ટોકન નકામો)
+const famAuth = async (req, res, next) => {
+  const c = claims(req);
+  if (!c) return res.status(401).json({ error: "પહેલા લૉગિન કરો" });
+  if (c.r !== "k") { req.user = c.u; req.role = "admin"; return next(); }
+  try {
+    const f = mongoose.isValidObjectId(c.f) ? await M.families.findById(c.f) : null;
+    if (!f || !f.user || f.user !== c.u || (f.tv || 0) !== (c.v || 0)) return res.status(401).json({ error: "પહેલા લૉગિન કરો" });
+    req.user = "kutumb:" + c.u; req.role = "kutumb"; req.fid = String(f._id); next();
+  } catch { res.status(401).json({ error: "પહેલા લૉગિન કરો" }); }
+};
+const skipAdmin = (req, res, next) => (req.role === "admin" ? next("route") : next());
 const wrap = (fn) => (req, res) => fn(req, res).catch(e => {
   if (e.code === 11000) return res.status(409).json({ error: "આ ઘરની ઉઘરાણી પહેલેથી થઈ ગઈ છે" });
   if (e.name === "ValidationError" || e.name === "CastError") return res.status(400).json({ error: "ખોટી માહિતી" });
@@ -83,10 +99,12 @@ app.post("/api/login", S.limiter(30, 15 * 60e3, "બહુ પ્રયત્ન
   const user = String((req.body || {}).user || "").slice(0, 50), pass = (req.body || {}).pass;
   if (S.locked(req.ip, user)) return res.status(429).json({ error: "બહુ ખોટા પ્રયત્નો, 15 મિનિટ પછી ફરી કરો" });
   const stored = Object.prototype.hasOwnProperty.call(admins, user) ? admins[user] : null;
-  const ok = stored !== null && S.checkPass(stored, pass);
+  let ok = stored !== null && S.checkPass(stored, pass), kf = null;
+  if (stored === null) { kf = await M.families.findOne({ user: user.toLowerCase() }); ok = !!(kf && kf.pass && S.checkPass(kf.pass, pass)); }
   if (!ok) { S.failed("ip:" + req.ip, "u:" + user); console.warn("ખોટો લૉગિન પ્રયત્ન:", user, req.ip); await S.sleep(800); return res.status(401).json({ error: "યુઝરનેમ કે પાસવર્ડ ખોટો" }); }
-  req.user = user; audit(req, "login");
-  res.json({ token: jwt.sign({ u: user }, JWT_SECRET, { algorithm: "HS256", expiresIn: "12h" }) });
+  req.user = kf ? "kutumb:" + kf.user : user; audit(req, "login");
+  const payload = kf ? { u: kf.user, r: "k", f: String(kf._id), v: kf.tv || 0 } : { u: user };
+  res.json({ token: jwt.sign(payload, JWT_SECRET, { algorithm: "HS256", expiresIn: "12h" }), role: kf ? "kutumb" : "admin" });
 }));
 
 // મોબાઇલ નંબર ફક્ત લૉગિન કરેલ મંડળને દેખાય; ગામ લોકોને નહીં
@@ -94,10 +112,15 @@ app.get("/api/all", wrap(async (req, res) => {
   const [prog, mem, pay, exp, don, set, fam] = await Promise.all([
     M.programs.find(), M.members.find(), M.payments.find(), M.expenses.find(), M.donations.find(), Setting.findById(1), M.families.find().sort({ order: 1, _id: 1 })
   ]);
-  const adm = isAdmin(req);
+  const c = claims(req), adm = !!c && c.r !== "k";
+  // કુટુંબનું લૉગિન: ફક્ત પોતાના કુટુંબના ઘરોના નંબર દેખાય
+  const kf = c && c.r === "k" ? fam.find(x => String(x._id) === c.f && x.user && x.user === c.u && (x.tv || 0) === (c.v || 0)) : null;
+  const kfid = kf ? String(kf._id) : "";
   const strip = (arr) => arr.map(d => { const o = d.toJSON(); if (!adm) delete o.phone; return o; });
+  const stripM = (arr) => arr.map(d => { const o = d.toJSON(); if (!adm && !(kfid && o.fid === kfid)) delete o.phone; return o; });
+  const famOut = fam.map(d => { const o = d.toJSON(); o.hasLogin = !!o.user; if (!adm) delete o.user; delete o.pass; delete o.tv; return o; });
   res.set("Cache-Control", "no-store");
-  res.json({ prog: prog.map(progJson), mem: strip(mem), fam, pay, exp, don: strip(don), set: set || {} });
+  res.json({ prog: prog.map(progJson), mem: stripM(mem), fam: famOut, pay, exp, don: strip(don), set: set || {} });
 }));
 app.get("/api/photos", wrap(async (req, res) => { res.json(await M.photos.find().sort({ _id: -1 }).limit(60)); }));
 app.get("/api/team", wrap(async (req, res) => { res.json(await M.team.find().sort({ order: 1, _id: 1 })); }));
@@ -197,7 +220,8 @@ app.get("/api/backup", S.limiter(5, 3600e3, "બેકઅપ કલાકમા�
 
 app.put("/api/settings", writes, auth, small, wrap(async (req, res) => {
   const b = req.body || {}, u = {};
-  SET_FIELDS.forEach(k => { if (typeof b[k] === "string") u[k] = b[k].slice(0, 300); });
+  SET_FIELDS.forEach(k => { if (typeof b[k] === "string") u[k] = b[k].slice(0, 300);
+  if (u.openBal !== undefined) { const n = Number(String(u.openBal).replace(/,/g, "")); u.openBal = Number.isFinite(n) && Math.abs(n) <= 1e9 ? String(n) : "0"; } });
   await Setting.findByIdAndUpdate(1, u, { upsert: true });
   audit(req, "settings"); res.json({ ok: true });
 }));
@@ -210,6 +234,58 @@ app.put("/api/assign", writes, auth, big, wrap(async (req, res) => {
   if (fid && (!mongoose.isValidObjectId(fid) || !(await M.families.exists({ _id: fid })))) return res.status(400).json({ error: "કુટુંબ મળ્યું નહીં" });
   const r = await M.members.updateMany({ _id: { $in: ids } }, { fid });
   audit(req, "assign", `${ids.length}→${fid || "-"}`); res.json({ ok: true, n: r.modifiedCount });
+}));
+
+// ===== કુટુંબનું લૉગિન (ફક્ત એડમિન બનાવી/કાઢી શકે) =====
+app.put("/api/family-login", writes, auth, small, wrap(async (req, res) => {
+  const b = req.body || {};
+  if (!mongoose.isValidObjectId(b.id)) return res.sendStatus(404);
+  const f = await M.families.findById(b.id);
+  if (!f) return res.sendStatus(404);
+  if (b.remove) { f.user = undefined; f.pass = undefined; f.tv = (f.tv || 0) + 1; await f.save(); audit(req, "family-login remove", b.id); return res.json({ ok: true }); }
+  const user = String(b.user || "").trim().toLowerCase(), pass = String(b.pass || "");
+  if (!/^[a-z0-9._-]{3,30}$/.test(user)) return res.status(400).json({ error: "યુઝરનેમ 3-30 અક્ષરનું, ફક્ત a-z, 0-9, . _ - વાપરો" });
+  if (pass.length < 6 || pass.length > 100) return res.status(400).json({ error: "પાસવર્ડ ઓછામાં ઓછો 6 અક્ષરનો રાખો" });
+  if (Object.keys(admins).some(a => a.toLowerCase() === user)) return res.status(409).json({ error: "આ યુઝરનેમ વપરાશમાં છે, બીજું રાખો" });
+  if (await M.families.findOne({ user, _id: { $ne: f._id } })) return res.status(409).json({ error: "આ યુઝરનેમ બીજા કુટુંબ પાસે છે" });
+  f.user = user; f.pass = S.hashPassword(pass); f.tv = (f.tv || 0) + 1; await f.save();
+  audit(req, "family-login set", b.id); res.json({ ok: true });
+}));
+
+// ===== કુટુંબના મુખ્ય વ્યક્તિ: ફક્ત પોતાના કુટુંબની ઉઘરાણી (એડમિન હોય તો skipAdmin સામાન્ય રૂટ પર મોકલે) =====
+const mineMembers = async (req, mids) => {
+  const ids = [...new Set(mids.map(String))];
+  if (!ids.length || !ids.every(mongoose.isValidObjectId)) return false;
+  return (await M.members.countDocuments({ _id: { $in: ids }, fid: req.fid })) === ids.length;
+};
+app.post("/api/payments", famAuth, skipAdmin, writes, big, wrap(async (req, res) => {
+  const list = (Array.isArray(req.body) ? req.body : [req.body]).slice(0, 100);
+  if (!list.length || list.some(b => !b || typeof b !== "object")) return res.status(400).json({ error: "ખોટી માહિતી" });
+  if (!(await mineMembers(req, list.map(b => b.mid)))) return res.status(403).json({ error: "આ ઘર તમારા કુટુંબનું નથી" });
+  const pids = [...new Set(list.map(b => String(b.pid)))];
+  if (!pids.every(mongoose.isValidObjectId) || (await M.programs.countDocuments({ _id: { $in: pids } })) !== pids.length) return res.status(400).json({ error: "કાર્યક્રમ મળ્યો નહીં" });
+  const docs = [];
+  for (const b of list) {
+    const d = { pid: String(b.pid), mid: String(b.mid), amount: Number(b.amount), no: await nextNo() };
+    if (typeof b.date === "string") d.date = b.date;
+    docs.push(d);
+  }
+  const created = await M.payments.create(docs);
+  audit(req, "add payments", `${docs.length}`); res.json(created);
+}));
+app.delete("/api/payments/:id", famAuth, skipAdmin, writes, wrap(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return res.sendStatus(404);
+  const p = await M.payments.findById(req.params.id);
+  if (!p) return res.sendStatus(404);
+  if (!(await mineMembers(req, [p.mid]))) return res.status(403).json({ error: "આ ઉઘરાણી તમારા કુટુંબની નથી" });
+  await p.deleteOne();
+  audit(req, "delete payments", req.params.id); res.json({ ok: true });
+}));
+app.put("/api/members/:id", famAuth, skipAdmin, writes, small, wrap(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return res.sendStatus(404);
+  if (!(await mineMembers(req, [req.params.id]))) return res.status(403).json({ error: "આ ઘર તમારા કુટુંબનું નથી" });
+  await M.members.findByIdAndUpdate(req.params.id, { phone: String((req.body || {}).phone || "").trim().slice(0, 20) }, { runValidators: true });
+  audit(req, "edit members", req.params.id); res.json({ ok: true });
 }));
 
 const EDIT = { members: ["name", "phone", "fid"], families: ["name"], donations: ["phone"], photos: ["caption"], team: ["role", "name", "phone", "photo"], programs: ["name", "amount", "date"] };
@@ -229,7 +305,7 @@ app.post("/api/:c", writes, auth, big, wrap(async (req, res) => {
     if (!b || typeof b !== "object") return res.status(400).json({ error: "ખોટી માહિતી" });
     const d = { ...b }; delete d._id; delete d.id; delete d.no;
     if (req.params.c === "payments" || req.params.c === "donations") d.no = await nextNo();
-    if (req.params.c === "families") d.order = Date.now();
+    if (req.params.c === "families") { d.order = Date.now(); delete d.user; delete d.pass; delete d.tv; }
     docs.push(d);
   }
   const created = await Model.create(docs);
