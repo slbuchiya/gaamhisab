@@ -80,7 +80,7 @@ export default function Home() {
       <Stat icon="📅" label="કાર્યક્રમ" value={S.prog.length} />
       <Stat icon="💰" label="કુલ આવક" value={t.inc} money />
       <Stat icon="🧾" label="કુલ ખર્ચ" value={t.ex} money />
-      <Stat icon="🏦" label="યુવા સંઘ પાસે કુલ બચત" value={openBal(S) + t.bal} money />
+      <Stat icon="🏦" label="કુલ બચત (જૂની + નવી)" value={openBal(S) + t.bal} money />
     </div>
 
     <div className="card hp-about">

@@ -205,7 +205,8 @@ app.get("/api/report/years", rep, wrap(async (req, res) => {
     TI += yi; TE += ye;
     return { title: `વર્ષ ${y}  (${list.length} કાર્યક્રમ)`, cols: [{ h: "કાર્યક્રમ", w: .34 }, { h: "તારીખ", w: .16 }, { h: "આવક", w: .17, a: "right" }, { h: "ખર્ચ", w: .16, a: "right" }, { h: "બચત", w: .17, a: "right" }], rows, total: ["કુલ", "", rs(yi), rs(ye), rs(yi - ye)] };
   });
-  sendPdf(res, "years.pdf", { org: orgOf(set), title: "વર્ષ મુજબ કાર્યક્રમ અને હિસાબ", subtitle: `કુલ ${progs.length} કાર્યક્રમ`, generated: stamp(), sign: signOf(set), summary: [["કુલ આવક", rs(TI), true], ["કુલ ખર્ચ", rs(TE), true], ["કુલ બચત", rs(TI - TE), true]], sections });
+  const old = Number((set && set.openBal) || 0) || 0, newBal = sum(pay) + sum(don.filter(x => x.kind === "cash")) - sum(exp);
+  sendPdf(res, "years.pdf", { org: orgOf(set), title: "વર્ષ મુજબ કાર્યક્રમ અને હિસાબ", subtitle: `કુલ ${progs.length} કાર્યક્રમ`, generated: stamp(), sign: signOf(set), summary: [["કુલ આવક", rs(TI), true], ["કુલ ખર્ચ", rs(TE), true], ["નવી બચત (આવક − ખર્ચ)", rs(newBal), true], ["જૂની બચત", rs(old), true], ["કુલ બચત (જૂની + નવી)", rs(old + newBal), true]], sections });
 }));
 
 // આખા ડેટાનો બેકઅપ (JSON) – ફક્ત લૉગિન કરેલ મંડળ ડાઉનલોડ કરી શકે
@@ -220,8 +221,8 @@ app.get("/api/backup", S.limiter(5, 3600e3, "બેકઅપ કલાકમા�
 
 app.put("/api/settings", writes, auth, small, wrap(async (req, res) => {
   const b = req.body || {}, u = {};
-  SET_FIELDS.forEach(k => { if (typeof b[k] === "string") u[k] = b[k].slice(0, 300);
-  if (u.openBal !== undefined) { const n = Number(String(u.openBal).replace(/,/g, "")); u.openBal = Number.isFinite(n) && Math.abs(n) <= 1e9 ? String(n) : "0"; } });
+  SET_FIELDS.forEach(k => { if (typeof b[k] === "string") u[k] = b[k].slice(0, 300); });
+  if (u.openBal !== undefined) { const n = Number(String(u.openBal).replace(/,/g, "")); u.openBal = Number.isFinite(n) && Math.abs(n) <= 1e9 ? String(n) : "0"; }
   await Setting.findByIdAndUpdate(1, u, { upsert: true });
   audit(req, "settings"); res.json({ ok: true });
 }));

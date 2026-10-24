@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./reports.css";
 import { useApp } from "../ctx.js";
-import { R, N, today, sum, programStats, reportUrl, DEN } from "../utils.js";
+import { R, N, today, sum, programStats, reportUrl, DEN, totals, openBal } from "../utils.js";
 
 const ymd = (d) => { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 10); };
 const Pdf = ({ href, label = "📄 PDF બનાવો / ડાઉનલોડ" }) => href
@@ -16,6 +16,19 @@ const Table = ({ head, rows, foot, right = [] }) => (
     {foot && <tfoot><tr>{foot.map((c, i) => <td key={i} className={right.includes(i) ? "r" : ""}>{c}</td>)}</tr></tfoot>}
   </table></div>
 );
+
+// ગ્રુપની કુલ બચત: જૂની બચત + નવી બચત (આવક − ખર્ચ)
+function Bachat() {
+  const { S } = useApp();
+  const old = openBal(S), t = totals(S, "all"), tot = old + t.bal;
+  return (
+    <div className="card" style={{ textAlign: "center" }}>
+      <b>💰 ગ્રુપની કુલ બચત</b>
+      <Sum items={[["જૂની બચત", R(old)], ["નવી આવક", R(t.inc), "good"], ["કુલ ખર્ચ", R(t.ex), "bad"], ["નવી બચત (આવક − ખર્ચ)", R(t.bal), t.bal >= 0 ? "good" : "bad"], ["કુલ બચત (જૂની + નવી)", R(tot), tot >= 0 ? "good" : "bad"]]} />
+      <div className="mu">{R(old)} + ({R(t.bal)}) = <b>{R(tot)}</b>{S.set.openNote ? ` • ${S.set.openNote}` : ""}</div>
+    </div>
+  );
+}
 
 function Day() {
   const { S, admin } = useApp();
@@ -123,6 +136,7 @@ export default function Reports() {
   const T = [["day", "💵 તારીખ મુજબ રોકડ"], ["prog", "🎯 કાર્યક્રમ ઓડિટ"], ["year", "🗓 વર્ષ મુજબ"]];
   return (<>
     <div className="rp-tabs">{T.map(([k, n]) => <button key={k} className={v === k ? "on" : ""} onClick={() => setV(k)}>{n}</button>)}</div>
+    {v === "year" && <Bachat />}
     {v === "day" ? <Day /> : v === "prog" ? <ProgramAudit /> : <Years />}
   </>);
 }
