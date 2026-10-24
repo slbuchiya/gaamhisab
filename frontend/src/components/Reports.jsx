@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./reports.css";
 import { useApp } from "../ctx.js";
-import { R, N, today, sum, programStats, reportUrl, DEN, totals, openBal } from "../utils.js";
+import { R, N, today, sum, programStats, reportUrl, DEN, totals, openBal, isNote } from "../utils.js";
 
 const ymd = (d) => { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 10); };
 const Pdf = ({ href, label = "📄 PDF બનાવો / ડાઉનલોડ" }) => href
@@ -24,7 +24,7 @@ function Bachat() {
   return (
     <div className="card" style={{ textAlign: "center" }}>
       <b>💰 ગ્રુપની કુલ બચત</b>
-      <Sum items={[["જૂની બચત", R(old)], ["નવી આવક", R(t.inc), "good"], ["કુલ ખર્ચ", R(t.ex), "bad"], ["નવી બચત (આવક − ખર્ચ)", R(t.bal), t.bal >= 0 ? "good" : "bad"], ["કુલ બચત (હાલમાં )", R(tot), tot >= 0 ? "good" : "bad"]]} />
+      <Sum items={[["જૂની બચત", R(old)], ["નવી આવક", R(t.inc), "good"], ["કુલ ખર્ચ", R(t.ex), "bad"], ["નવી બચત (આવક − ખર્ચ)", R(t.bal), t.bal >= 0 ? "good" : "bad"], ["કુલ બચત (જૂની + નવી)", R(tot), tot >= 0 ? "good" : "bad"]]} />
       <div className="mu">{R(old)} + ({R(t.bal)}) = <b>{R(tot)}</b>{S.set.openNote ? ` • ${S.set.openNote}` : ""}</div>
     </div>
   );
@@ -97,7 +97,7 @@ function ProgramAudit() {
       <Sum items={[["કુલ આવક", R(st.inc), "good"], ["કુલ ખર્ચ", R(st.ex), "bad"], [st.bal >= 0 ? "બાકી રકમ (બચત)" : "ખોટ", R(Math.abs(st.bal)), st.bal >= 0 ? "good" : "bad"], ["ભરનાર ઘર", `${st.pays.length}/${S.mem.length}`]]} />
       {st.pays.length > 0 && <>
         <div className="rp-h">આવક</div>
-        <Table head={["ક્રમ", "નામ", "રસીદ", "તારીખ", "રકમ"]} right={[4]} rows={st.pays.map((x, i) => [i + 1, mem[x.mid] || "—", x.no, x.date, R(x.amount)])} foot={["", "કુલ " + st.pays.length + " ઘર ઉઘરાણી", "", "", R(st.ug)]} />
+        <Table head={["ક્રમ", "નામ", "રસીદ", "તારીખ", "રકમ"]} right={[4]} rows={st.pays.map((x, i) => [i + 1, mem[x.mid] || "—", x.no, x.date, isNote(x) ? "🎁 " + x.note : R(x.amount)])} foot={["", "કુલ " + st.pays.length + " ઘર ઉઘરાણી", "", "", R(st.ug)]} />
       </>}
       {st.cash.length > 0 && <Table head={["રોકડ દાતા", "તારીખ", "રકમ"]} right={[2]} rows={st.cash.map((d) => [d.donor, d.date, R(d.amount)])} foot={["કુલ રોકડ દાન (" + st.cash.length + ")", "", R(st.dc)]} />}
       {st.items.length > 0 && <Table head={["વસ્તુ દાતા", "વસ્તુ", "તારીખ"]} rows={st.items.map((d) => [d.donor, d.item, d.date])} />}

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useApp } from "../ctx.js";
 import { api } from "../api.js";
-import { R, N, pname, inP, sendWa, today } from "../utils.js";
+import { R, N, pname, sendWa, today, donorList } from "../utils.js";
 import PSel from "./PSel.jsx";
 export default function Donations() {
   const { S, admin, pid, run, showRc } = useApp();
@@ -12,6 +12,8 @@ export default function Donations() {
     if (kind === "cash") d.amount = N(v); else d.item = v.trim();
     if (await run(() => api("donations", "POST", d))) { setDonor(""); setV(""); setPhone(""); }
   };
+  const list = donorList(S, pid);
+  const delPay = (id) => confirm("આ ઘરની નોંધ કાઢવી છે? (ઉઘરાણીમાંથી પણ ટિક નીકળી જશે)") && run(() => api("payments/" + id, "DELETE"));
   const del = (id) => confirm("ખરેખર કાઢી નાખવું છે?") && run(() => api("donations/" + id, "DELETE"));
   return (<>
     <PSel />
@@ -26,12 +28,16 @@ export default function Donations() {
         </div>
       </div>) : <div className="mu">દાન ઉમેરવા કાર્યક્રમ પસંદ કરો.</div>)}
     <div className="card">
-      {S.don.filter(inP(pid)).map((x) => (
+      {list.map((x) => x.fromPay ? (
+        <div className="li" key={x.id}>
+          <span>✅ {x.donor} – 🎁 {x.item} <span className="mu">(રોકડ નહીં) {pname(S, x.pid)} • {x.date}</span></span>
+          <span>{admin && <button className="b d" onClick={() => delPay(x.payId)}>🗑</button>}</span>
+        </div>) : (
         <div className="li" key={x.id}>
           <span>🎁 {x.donor} – {x.kind === "cash" ? R(x.amount) : x.item} <span className="mu">{pname(S, x.pid)} • {x.date}</span></span>
           <span><button className="b" onClick={() => showRc({ ...x, name: x.donor, kind: "don" })}>🧾</button>{admin && x.phone && <> <button className="b" onClick={() => sendWa(S, { ...x, name: x.donor, kind: "don" })}>📲</button></>}{admin && <> <button className="b d" onClick={() => del(x.id)}>🗑</button></>}</span>
         </div>))}
-      {!S.don.filter(inP(pid)).length && <div className="mu">હજી કોઈ દાન નથી</div>}
+      {!list.length && <div className="mu">હજી કોઈ દાન નથી</div>}
     </div>
   </>);
 }

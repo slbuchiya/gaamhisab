@@ -3,11 +3,26 @@ export const N = (v) => Number(v) || 0;
 export const R = (v) => "₹" + N(v).toLocaleString("en-IN");
 export const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); }; // ભારતની (સ્થાનિક) તારીખ
 export const pname = (S, id) => (S.prog.find((p) => p.id === id) || {}).name || "—";
+// કાર્યક્રમનું વર્ષ (તારીખ પરથી) અને વર્ષ મુજબ જૂથ (નવું વર્ષ ઉપર)
+export const yearOf = (p) => (p.date || "").slice(0, 4) || "—";
+export const byYear = (progs) => {
+  const g = {};
+  [...progs].sort((a, b) => (b.date || "").localeCompare(a.date || "")).forEach((p) => { (g[yearOf(p)] = g[yearOf(p)] || []).push(p); });
+  return Object.keys(g).sort().reverse().map((y) => [y, g[y]]);
+};
 export const inP = (pid) => (x) => pid === "all" || x.pid === pid;
 export const sum = (a) => a.reduce((t, x) => t + N(x.amount), 0);
 // કુલ બચત = જૂની બચત (સેટિંગમાં લખેલી) + નવી બચત (આવક − ખર્ચ)
 export const openBal = (S) => N(S.set && S.set.openBal);
 export const grandBal = (S) => openBal(S) + totals(S, "all").bal;
+// જેમની પાસેથી રોકડ લીધી નથી (પ્રસાદી/વસ્તુ આપી) તેવા ઘર: ઉઘરાણીમાં રકમ 0 + નોંધ
+export const isNote = (p) => !!p.note && !N(p.amount);
+// દાતાઓની યાદી = રોકડ/વસ્તુ દાન + "રોકડ વગર, પ્રસાદી/વસ્તુ આપનાર" ઘર (ઉઘરાણીમાંથી)
+export const donorList = (S, pid) => {
+  const nm = Object.fromEntries(S.mem.map((m) => [m.id, m.name]));
+  const extra = S.pay.filter((p) => isNote(p) && (pid === "all" || p.pid === pid)).map((p) => ({ id: "p" + p.id, payId: p.id, donor: nm[p.mid] || "—", kind: "item", item: p.note, pid: p.pid, date: p.date, fromPay: true }));
+  return [...S.don.filter((x) => pid === "all" || x.pid === pid), ...extra];
+};
 export function totals(S, pid) {
   const f = inP(pid);
   const ug = sum(S.pay.filter(f));
@@ -78,7 +93,7 @@ export function fileToAvatar(file) {
 export function programStats(S, pid) {
   const pays = S.pay.filter((x) => x.pid === pid).sort((a, b) => (a.no || 0) - (b.no || 0));
   const don = S.don.filter((x) => x.pid === pid);
-  const cash = don.filter((d) => d.kind === "cash"), items = don.filter((d) => d.kind !== "cash");
+  const cash = don.filter((d) => d.kind === "cash"), items = donorList(S, pid).filter((d) => d.kind !== "cash");
   const exps = S.exp.filter((x) => x.pid === pid);
   const ug = sum(pays), dc = sum(cash), ex = sum(exps);
   return { pays, cash, items, exps, ug, dc, ex, inc: ug + dc, bal: ug + dc - ex };

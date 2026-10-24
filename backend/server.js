@@ -49,7 +49,7 @@ const M = {
   programs: mk("Program", { name: str(100), amount: { type: Number, default: 0, min: 0, max: 1e8 }, date: dateF }),
   families: mk("Family", { name: str(100), order: { type: Number, default: 0 }, user: { type: String, trim: true, maxlength: 30 }, pass: { type: String, maxlength: 200 }, tv: { type: Number, default: 0 } }),
   members: mk("Member", { name: str(100), phone: { type: String, trim: true, maxlength: 20 }, fid: { type: String, trim: true, maxlength: 40, default: "" } }),
-  payments: mk("Payment", { pid: str(40), mid: str(40), amount: { type: Number, required: true, min: 0, max: 1e8 }, date: dateF, no: Number }, { pid: 1, mid: 1 }),
+  payments: mk("Payment", { pid: str(40), mid: str(40), amount: { type: Number, required: true, min: 0, max: 1e8 }, note: { type: String, trim: true, maxlength: 100 }, date: dateF, no: Number }, { pid: 1, mid: 1 }),
   expenses: mk("Expense", { pid: str(40), detail: str(200), amount: { type: Number, required: true, min: 0, max: 1e8 }, date: dateF }),
   donations: mk("Donation", { pid: str(40), donor: str(100), kind: { type: String, enum: ["cash", "item"], required: true }, amount: { type: Number, min: 0, max: 1e8 }, item: { type: String, trim: true, maxlength: 200 }, phone: { type: String, trim: true, maxlength: 20 }, date: dateF, no: Number }),
   photos: mk("Photo", { caption: { type: String, trim: true, maxlength: 200, default: "" }, pid: { type: String, default: "", maxlength: 40 }, data: img(true), date: dateF }),
@@ -160,14 +160,14 @@ app.get("/api/report/program/:id", rep, wrap(async (req, res) => {
   const [p, set, mem, pay, don, exp, total] = await Promise.all([M.programs.findById(id), Setting.findById(1), M.members.find(), M.payments.find({ pid: id }), M.donations.find({ pid: id }), M.expenses.find({ pid: id }), M.members.countDocuments()]);
   if (!p) return res.sendStatus(404);
   const nm = Object.fromEntries(mem.map(m => [String(m._id), m.name]));
-  const pays = pay.sort(byNo), cash = don.filter(d => d.kind === "cash"), items = don.filter(d => d.kind !== "cash");
+  const pays = pay.sort(byNo), cash = don.filter(d => d.kind === "cash"), noteP = pays.filter(x => x.note && !x.amount), items = [...don.filter(d => d.kind !== "cash"), ...noteP.map(x => ({ donor: nm[x.mid] || "—", item: x.note, date: x.date }))];
   const ug = sum(pays), dc = sum(cash), ex = sum(exp), inc = ug + dc;
   const gb = await groupBal(set);
   sendPdf(res, "audit.pdf", {
     org: orgOf(set), title: "કાર્યક્રમ ઓડિટ રિપોર્ટ", subtitle: `${p.name}  •  તારીખ: ${progDate(p)}`, generated: stamp(), sign: signOf(set),
     summary: [["ઉઘરાણી ભરનાર ઘર", `${pays.length} / ${total}`], ["કુલ ઉઘરાણી", rs(ug)], dc ? ["રોકડ દાન", rs(dc)] : null, ["કુલ આવક", rs(inc), true], ["કુલ ખર્ચ", rs(ex), true], [inc - ex >= 0 ? "બાકી રકમ (બચત)" : "ખૂટતી રકમ (ખોટ)", rs(Math.abs(inc - ex)), true], ...gb].filter(Boolean),
     sections: [
-      { title: "ઉઘરાણી યાદી", cols: [{ h: "ક્રમ", w: .08 }, { h: "નામ", w: .44 }, { h: "રસીદ નં", w: .14 }, { h: "તારીખ", w: .16 }, { h: "રકમ", w: .18, a: "right" }], rows: pays.map((x, i) => [i + 1, nm[x.mid] || "—", x.no, x.date, rs(x.amount)]), total: ["", `કુલ ${pays.length} ઘર`, "", "", rs(ug)] },
+      { title: "ઉઘરાણી યાદી", cols: [{ h: "ક્રમ", w: .08 }, { h: "નામ", w: .44 }, { h: "રસીદ નં", w: .14 }, { h: "તારીખ", w: .16 }, { h: "રકમ", w: .18, a: "right" }], rows: pays.map((x, i) => [i + 1, nm[x.mid] || "—", x.no, x.date, x.note && !x.amount ? x.note : rs(x.amount)]), total: ["", `કુલ ${pays.length} ઘર`, "", "", rs(ug)] },
       { title: "રોકડ દાન", cols: [{ h: "ક્રમ", w: .08 }, { h: "દાતા", w: .5 }, { h: "તારીખ", w: .22 }, { h: "રકમ", w: .2, a: "right" }], rows: cash.map((x, i) => [i + 1, x.donor, x.date, rs(x.amount)]), total: ["", `કુલ ${cash.length} દાતા`, "", rs(dc)] },
       { title: "વસ્તુ દાન", cols: [{ h: "ક્રમ", w: .08 }, { h: "દાતા", w: .36 }, { h: "વસ્તુ", w: .34 }, { h: "તારીખ", w: .22 }], rows: items.map((x, i) => [i + 1, x.donor, x.item || "", x.date]), total: ["", `કુલ ${items.length} દાતા`, "", ""] },
       { title: "ખર્ચ", cols: [{ h: "ક્રમ", w: .08 }, { h: "વિગત", w: .5 }, { h: "તારીખ", w: .22 }, { h: "રકમ", w: .2, a: "right" }], rows: exp.map((x, i) => [i + 1, x.detail, x.date, rs(x.amount)]), total: ["", `કુલ ${exp.length} ખર્ચ`, "", rs(ex)] },
@@ -181,7 +181,7 @@ app.get("/api/report/day", rep, wrap(async (req, res) => {
   const q = { date: { $gte: from, $lte: to } };
   const [set, mem, progs, pay, don, exp] = await Promise.all([Setting.findById(1), M.members.find(), M.programs.find(), M.payments.find(q), M.donations.find(q), M.expenses.find(q)]);
   const nm = Object.fromEntries(mem.map(m => [String(m._id), m.name])), pn = Object.fromEntries(progs.map(p => [String(p._id), p.name]));
-  const pays = pay.sort(byNo), cash = don.filter(d => d.kind === "cash"), items = don.filter(d => d.kind !== "cash");
+  const pays = pay.sort(byNo), cash = don.filter(d => d.kind === "cash"), items = [...don.filter(d => d.kind !== "cash"), ...pays.filter(x => x.note && !x.amount).map(x => ({ donor: nm[String(x.mid)] || nm[x.mid] || "—", item: x.note, pid: x.pid }))];
   const ug = sum(pays), dc = sum(cash), ex = sum(exp), inc = ug + dc, expected = net ? inc - ex : inc;
   const summary = [["ઉઘરાણી (" + pays.length + " ઘર)", rs(ug)], dc ? ["રોકડ દાન", rs(dc)] : null, ["કુલ આવક", rs(inc), true], ex ? ["કુલ ખર્ચ", rs(ex)] : null, [net ? "હાથમાં હોવી જોઈએ તેટલી રોકડ (આવક − ખર્ચ)" : "હાથમાં હોવી જોઈએ તેટલી રોકડ (આવક)", rs(expected), true], ...(await groupBal(set))].filter(Boolean);
   if (counted !== null && Number.isFinite(counted)) {
@@ -191,7 +191,7 @@ app.get("/api/report/day", rep, wrap(async (req, res) => {
   sendPdf(res, "daily.pdf", {
     org: orgOf(set), title: "તારીખ મુજબ રોકડ હિસાબ", subtitle: from === to ? `તારીખ: ${from}` : `તારીખ: ${from} થી ${to}`, generated: stamp(), sign: signOf(set), summary,
     sections: [
-      { title: "ઉઘરાણી", cols: [{ h: "ક્રમ", w: .07 }, { h: "રસીદ નં", w: .12 }, { h: "નામ", w: .34 }, { h: "કાર્યક્રમ", w: .27 }, { h: "રકમ", w: .2, a: "right" }], rows: pays.map((x, i) => [i + 1, x.no, nm[x.mid] || "—", pn[x.pid] || "—", rs(x.amount)]), total: ["", "", `કુલ ${pays.length} ઘર`, "", rs(ug)] },
+      { title: "ઉઘરાણી", cols: [{ h: "ક્રમ", w: .07 }, { h: "રસીદ નં", w: .12 }, { h: "નામ", w: .34 }, { h: "કાર્યક્રમ", w: .27 }, { h: "રકમ", w: .2, a: "right" }], rows: pays.map((x, i) => [i + 1, x.no, nm[x.mid] || "—", pn[x.pid] || "—", x.note && !x.amount ? x.note : rs(x.amount)]), total: ["", "", `કુલ ${pays.length} ઘર`, "", rs(ug)] },
       { title: "રોકડ દાન", cols: [{ h: "ક્રમ", w: .08 }, { h: "દાતા", w: .45 }, { h: "કાર્યક્રમ", w: .27 }, { h: "રકમ", w: .2, a: "right" }], rows: cash.map((x, i) => [i + 1, x.donor, pn[x.pid] || "—", rs(x.amount)]), total: ["", `કુલ ${cash.length} દાતા`, "", rs(dc)] },
       { title: "વસ્તુ દાન", cols: [{ h: "ક્રમ", w: .08 }, { h: "દાતા", w: .4 }, { h: "વસ્તુ", w: .32 }, { h: "કાર્યક્રમ", w: .2 }], rows: items.map((x, i) => [i + 1, x.donor, x.item || "", pn[x.pid] || "—"]) },
       { title: "ખર્ચ", cols: [{ h: "ક્રમ", w: .08 }, { h: "વિગત", w: .45 }, { h: "કાર્યક્રમ", w: .27 }, { h: "રકમ", w: .2, a: "right" }], rows: exp.map((x, i) => [i + 1, x.detail, pn[x.pid] || "—", rs(x.amount)]), total: ["", `કુલ ${exp.length} ખર્ચ`, "", rs(ex)] },
@@ -276,6 +276,7 @@ app.post("/api/payments", famAuth, skipAdmin, writes, big, wrap(async (req, res)
   for (const b of list) {
     const d = { pid: String(b.pid), mid: String(b.mid), amount: Number(b.amount), no: await nextNo() };
     if (typeof b.date === "string") d.date = b.date;
+    if (typeof b.note === "string" && b.note.trim()) d.note = b.note.trim().slice(0, 100);
     docs.push(d);
   }
   const created = await M.payments.create(docs);

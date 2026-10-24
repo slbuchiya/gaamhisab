@@ -3,7 +3,7 @@ import "./reports.css";
 import "./collection.css";
 import { useApp } from "../ctx.js";
 import { api } from "../api.js";
-import { R, N, today, waPhone, waLink, receiptText } from "../utils.js";
+import { R, N, today, waPhone, waLink, receiptText, isNote } from "../utils.js";
 import PSel from "./PSel.jsx";
 
 export default function Collection() {
@@ -42,8 +42,14 @@ export default function Collection() {
   const tick = async (m) => {
     const old = paid[m.id];
     if (old) { if (confirm(`${m.name} ની ઉઘરાણી રદ કરવી છે? (તે બાકીની યાદીમાં પાછા જશે)`)) await run(() => api("payments/" + old.id, "DELETE")); return; }
-    const a = prompt("કેટલી રકમ લીધી? (₹)", (prog && prog.amount) || "");
-    if (a === null || !N(a)) return;
+    const a = prompt("કેટલી રકમ લીધી? (₹)\n(રોકડ લીધી ન હોય, પ્રસાદી/વસ્તુ આપી હોય તો 0 લખો)", (prog && prog.amount) || "");
+    if (a === null || String(a).trim() === "" || isNaN(Number(a)) || Number(a) < 0) return;
+    if (!N(a)) { // રોકડ વગર: નામ ટિક થશે અને દાતાની યાદીમાં પણ દેખાશે
+      const note = prompt(`${m.name} એ શું આપ્યું? (દા.ત. પ્રસાદી, નાળિયેર, મીઠાઈ)`, "પ્રસાદી");
+      if (note === null || !note.trim()) return;
+      await run(() => api("payments", "POST", { pid, mid: m.id, amount: 0, note: note.trim(), date: today() }));
+      return;
+    }
     const phone = askPhone(m);
     let created = null;
     const ok = await run(async () => {
@@ -66,9 +72,9 @@ export default function Collection() {
       <div className={"li" + (p ? " cl-row-paid" : "")}>
         <span>
           {canTick ? <input type="checkbox" checked={!!p} onChange={() => tick(m)} /> : (p ? "✅" : "⬜")} {m.name}
-          {p && <span className="mu"> {R(p.amount)} • રસીદ {p.no}</span>}
+          {p && (isNote(p) ? <span className="mu"> 🎁 {p.note} (રોકડ નહીં)</span> : <span className="mu"> {R(p.amount)} • રસીદ {p.no}</span>)}
         </span>
-        {p && <span>
+        {p && !isNote(p) && <span>
           <button className="b" onClick={() => showRc({ ...p, name: m.name, phone: m.phone, kind: "pay" })}>🧾 રસીદ</button>
           {canTick && <> <button className="b" onClick={() => sendRow(p, m)}>📲</button></>}
         </span>}

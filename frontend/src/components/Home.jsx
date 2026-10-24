@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useApp } from "../ctx.js";
 import MemberCard from "./MemberCard.jsx";
 import "./home.css";
-import { R, totals, openBal, pname, waLink, waPhone, ROLES } from "../utils.js";
+import { R, totals, openBal, donorList, pname, waLink, waPhone, ROLES } from "../utils.js";
 
 function useCount(to) {
   const [v, setV] = useState(0);
@@ -39,7 +39,7 @@ export default function Home() {
   });
   const people = [["પ્રમુખ", s.pramukh, s.pramukhPhone], ["ખજાનચી", s.khajanchi, s.khajanchiPhone], ["મંત્રી", s.mantri, s.mantriPhone]].filter((x) => x[1]);
   const top = [...team].sort((a, b) => ROLES.indexOf(a.role) - ROLES.indexOf(b.role)).slice(0, 8);
-  const donors = [...S.don].reverse().slice(0, 6);
+  const donors = donorList(S, "all").reverse().slice(0, 6);
   const gal = photos.slice(0, 12);
   const openProg = (id) => { setPid(id); setTab("ug"); };
   const lbGo = (d) => setLb((x) => (x + d + gal.length) % gal.length);
@@ -80,7 +80,7 @@ export default function Home() {
       <Stat icon="📅" label="કાર્યક્રમ" value={S.prog.length} />
       <Stat icon="💰" label="કુલ આવક" value={t.inc} money />
       <Stat icon="🧾" label="કુલ ખર્ચ" value={t.ex} money />
-      <Stat icon="🏦" label="યુવા સંઘ પાસે કુલ બચત" value={openBal(S) + t.bal} money />
+      <Stat icon="🏦" label="કુલ બચત (જૂની + નવી)" value={openBal(S) + t.bal} money />
     </div>
 
     <div className="card hp-about">
