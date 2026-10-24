@@ -147,6 +147,12 @@ const orgOf = (set) => `${(set && set.gaam) || ""} ${(set && set.mandal) ? "– 
 const signOf = (set) => ({ a: set && set.pramukh, b: set && set.khajanchi });
 const sendPdf = (res, file, spec) => { res.set({ "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="${file}"` }); buildReportPdf(res, spec); };
 const byNo = (a, b) => (a.no || 0) - (b.no || 0);
+// ગ્રુપની કુલ બચત (બધા કાર્યક્રમ): જૂની બચત + નવી બચત (આવક − ખર્ચ) → PDF ની સારાંશ લાઈનો
+const groupBal = async (set) => {
+  const [pay, don, exp] = await Promise.all([M.payments.find(), M.donations.find(), M.expenses.find()]);
+  const old = Number((set && set.openBal) || 0) || 0, nw = sum(pay) + sum(don.filter(x => x.kind === "cash")) - sum(exp);
+  return [["ગ્રુપની જૂની બચત", rs(old), true], ["ગ્રુપની નવી બચત (બધા કાર્યક્રમ, આવક − ખર્ચ)", rs(nw), true], ["ગ્રુપની કુલ બચત (જૂની + નવી)", rs(old + nw), true]];
+};
 
 app.get("/api/report/program/:id", rep, wrap(async (req, res) => {
   const id = req.params.id.replace(/\.pdf$/i, "");
@@ -156,9 +162,10 @@ app.get("/api/report/program/:id", rep, wrap(async (req, res) => {
   const nm = Object.fromEntries(mem.map(m => [String(m._id), m.name]));
   const pays = pay.sort(byNo), cash = don.filter(d => d.kind === "cash"), items = don.filter(d => d.kind !== "cash");
   const ug = sum(pays), dc = sum(cash), ex = sum(exp), inc = ug + dc;
+  const gb = await groupBal(set);
   sendPdf(res, "audit.pdf", {
     org: orgOf(set), title: "કાર્યક્રમ ઓડિટ રિપોર્ટ", subtitle: `${p.name}  •  તારીખ: ${progDate(p)}`, generated: stamp(), sign: signOf(set),
-    summary: [["ઉઘરાણી ભરનાર ઘર", `${pays.length} / ${total}`], ["કુલ ઉઘરાણી", rs(ug)], dc ? ["રોકડ દાન", rs(dc)] : null, ["કુલ આવક", rs(inc), true], ["કુલ ખર્ચ", rs(ex), true], [inc - ex >= 0 ? "બાકી રકમ (બચત)" : "ખૂટતી રકમ (ખોટ)", rs(Math.abs(inc - ex)), true]].filter(Boolean),
+    summary: [["ઉઘરાણી ભરનાર ઘર", `${pays.length} / ${total}`], ["કુલ ઉઘરાણી", rs(ug)], dc ? ["રોકડ દાન", rs(dc)] : null, ["કુલ આવક", rs(inc), true], ["કુલ ખર્ચ", rs(ex), true], [inc - ex >= 0 ? "બાકી રકમ (બચત)" : "ખૂટતી રકમ (ખોટ)", rs(Math.abs(inc - ex)), true], ...gb].filter(Boolean),
     sections: [
       { title: "ઉઘરાણી યાદી", cols: [{ h: "ક્રમ", w: .08 }, { h: "નામ", w: .44 }, { h: "રસીદ નં", w: .14 }, { h: "તારીખ", w: .16 }, { h: "રકમ", w: .18, a: "right" }], rows: pays.map((x, i) => [i + 1, nm[x.mid] || "—", x.no, x.date, rs(x.amount)]), total: ["", `કુલ ${pays.length} ઘર`, "", "", rs(ug)] },
       { title: "રોકડ દાન", cols: [{ h: "ક્રમ", w: .08 }, { h: "દાતા", w: .5 }, { h: "તારીખ", w: .22 }, { h: "રકમ", w: .2, a: "right" }], rows: cash.map((x, i) => [i + 1, x.donor, x.date, rs(x.amount)]), total: ["", `કુલ ${cash.length} દાતા`, "", rs(dc)] },
@@ -176,7 +183,7 @@ app.get("/api/report/day", rep, wrap(async (req, res) => {
   const nm = Object.fromEntries(mem.map(m => [String(m._id), m.name])), pn = Object.fromEntries(progs.map(p => [String(p._id), p.name]));
   const pays = pay.sort(byNo), cash = don.filter(d => d.kind === "cash"), items = don.filter(d => d.kind !== "cash");
   const ug = sum(pays), dc = sum(cash), ex = sum(exp), inc = ug + dc, expected = net ? inc - ex : inc;
-  const summary = [["ઉઘરાણી (" + pays.length + " ઘર)", rs(ug)], dc ? ["રોકડ દાન", rs(dc)] : null, ["કુલ આવક", rs(inc), true], ex ? ["કુલ ખર્ચ", rs(ex)] : null, [net ? "હાથમાં હોવી જોઈએ તેટલી રોકડ (આવક − ખર્ચ)" : "હાથમાં હોવી જોઈએ તેટલી રોકડ (આવક)", rs(expected), true]].filter(Boolean);
+  const summary = [["ઉઘરાણી (" + pays.length + " ઘર)", rs(ug)], dc ? ["રોકડ દાન", rs(dc)] : null, ["કુલ આવક", rs(inc), true], ex ? ["કુલ ખર્ચ", rs(ex)] : null, [net ? "હાથમાં હોવી જોઈએ તેટલી રોકડ (આવક − ખર્ચ)" : "હાથમાં હોવી જોઈએ તેટલી રોકડ (આવક)", rs(expected), true], ...(await groupBal(set))].filter(Boolean);
   if (counted !== null && Number.isFinite(counted)) {
     const diff = counted - expected;
     summary.push(["ગણેલી રોકડ", rs(counted), true], [diff === 0 ? "હિસાબ બરાબર મળે છે ✓" : diff < 0 ? "રોકડ ઓછી છે" : "રોકડ વધારે છે", diff === 0 ? "—" : rs(Math.abs(diff)), true]);

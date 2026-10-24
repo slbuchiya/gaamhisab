@@ -136,7 +136,7 @@ export default function Reports() {
   const T = [["day", "💵 તારીખ મુજબ રોકડ"], ["prog", "🎯 કાર્યક્રમ ઓડિટ"], ["year", "🗓 વર્ષ મુજબ"]];
   return (<>
     <div className="rp-tabs">{T.map(([k, n]) => <button key={k} className={v === k ? "on" : ""} onClick={() => setV(k)}>{n}</button>)}</div>
-    {v === "year" && <Bachat />}
+    <Bachat />
     {v === "day" ? <Day /> : v === "prog" ? <ProgramAudit /> : <Years />}
   </>);
 }
