@@ -24,7 +24,7 @@ function Bachat() {
   return (
     <div className="card" style={{ textAlign: "center" }}>
       <b>💰 ગ્રુપની કુલ બચત</b>
-      <Sum items={[["જૂની બચત", R(old)], ["નવી આવક", R(t.inc), "good"], ["કુલ ખર્ચ", R(t.ex), "bad"], ["નવી બચત (આવક − ખર્ચ)", R(t.bal), t.bal >= 0 ? "good" : "bad"], ["કુલ બચત (જૂની + નવી)", R(tot), tot >= 0 ? "good" : "bad"]]} />
+      <Sum items={[["જૂની બચત", R(old)], ["નવી આવક", R(t.inc), "good"], ["કુલ ખર્ચ", R(t.ex), "bad"], ["નવી બચત (આવક − ખર્ચ)", R(t.bal), t.bal >= 0 ? "good" : "bad"], ["કુલ બચત (હાલમાં )", R(tot), tot >= 0 ? "good" : "bad"]]} />
       <div className="mu">{R(old)} + ({R(t.bal)}) = <b>{R(tot)}</b>{S.set.openNote ? ` • ${S.set.openNote}` : ""}</div>
     </div>
   );
